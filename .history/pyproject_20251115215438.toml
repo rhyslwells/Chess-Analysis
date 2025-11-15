@@ -1,0 +1,32 @@
+# add these if they are a import
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import chess.pgn
+import pandas as pd
+import glob
+
+import os
+import requests
+
+
+
+[project]
+name = "Chess-Analysis"
+version = "0.1.0"
+description = "Example project"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel",
+    "pytest",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
