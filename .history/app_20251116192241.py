@@ -15,7 +15,7 @@ from scripts.predictor import ChessPredictor
 # Page configuration
 st.set_page_config(
     page_title="Chess Game Analysis Dashboard",
-    page_icon="♟️",
+    page_icon="",
     layout="wide"
 )
 
@@ -28,7 +28,7 @@ if 'username' not in st.session_state:
     st.session_state.username = ""
 
 # Title and description
-st.title("♟️ Chess Game Analysis Dashboard")
+st.title(" Chess Game Analysis Dashboard")
 st.markdown("Analyze your Chess.com games, track performance trends, and predict outcomes.")
 
 # Sidebar for data fetching
@@ -69,7 +69,7 @@ with st.sidebar:
         else:  # Last 6 Months
             start_date = end_date - timedelta(days=180)
     
-    fetch_button = st.button("🔄 Fetch Games", type="primary", use_container_width=True)
+    fetch_button = st.button(" Fetch Games", type="primary", use_container_width=True)
     
     if fetch_button and username:
         with st.spinner("Fetching games from Chess.com..."):
@@ -86,7 +86,7 @@ with st.sidebar:
                     st.session_state.df = df
                     st.session_state.data_loaded = True
                     st.session_state.username = username
-                    st.success(f"✅ Loaded {len(df)} games!")
+                    st.success(f" Loaded {len(df)} games!")
                 else:
                     st.error("No games found for this period.")
             except Exception as e:
@@ -94,7 +94,7 @@ with st.sidebar:
     
     # Load existing data
     if username and not fetch_button:
-        load_existing = st.button("📂 Load Saved Data", use_container_width=True)
+        load_existing = st.button(" Load Saved Data", use_container_width=True)
         if load_existing:
             try:
                 fetcher = ChessDataFetcher()
@@ -103,7 +103,7 @@ with st.sidebar:
                     st.session_state.df = df
                     st.session_state.data_loaded = True
                     st.session_state.username = username
-                    st.success(f"✅ Loaded {len(df)} games from file!")
+                    st.success(f" Loaded {len(df)} games from file!")
                 else:
                     st.warning("No saved data found. Please fetch games first.")
             except Exception as e:
@@ -115,7 +115,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     analyzer = ChessAnalyzer(df)
     
     # Overall Statistics
-    st.header("📊 Performance Overview")
+    st.header(" Performance Overview")
     stats = analyzer.get_overall_stats()
     
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -130,7 +130,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     col2.metric("Avg Opponent Rating", f"{stats['avg_opponent_rating']:.0f}")
     
     # Charts
-    st.header("📈 Performance Analysis")
+    st.header(" Performance Analysis")
     
     tab1, tab2, tab3, tab4 = st.tabs([
         "Rating Trend", "Results Over Time", "Opening Performance", "Opponent Strength"
@@ -205,7 +205,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         st.dataframe(tc_stats, use_container_width=True, hide_index=True)
     
     # Machine Learning Prediction
-    st.header("🤖 Win Probability Predictor")
+    st.header(" Win Probability Predictor")
     
     if len(df) >= 20:
         with st.spinner("Training prediction model..."):
@@ -213,7 +213,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
             X, y = analyzer.prepare_ml_features()
             metrics = predictor.train(X, y)
             
-            st.success(f"✅ Model trained on {metrics['n_train_samples'] + metrics['n_test_samples']} games")
+            st.success(f" Model trained on {metrics['n_train_samples'] + metrics['n_test_samples']} games")
             
             col1, col2 = st.columns(2)
             col1.metric("Training Accuracy", f"{metrics['train_accuracy']:.1%}")
@@ -270,7 +270,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         st.info("Need at least 20 games to train prediction model. Keep playing!")
     
     # Recent Games Table
-    st.header("🎮 Recent Games")
+    st.header(" Recent Games")
     
     recent_games = analyzer.get_recent_games(20)
     display_columns = [
@@ -292,7 +292,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     st.markdown(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
 else:
-    st.info("👈 Enter your Chess.com username and fetch your games to get started!")
+    st.info(" Enter your Chess.com username and fetch your games to get started!")
     
     st.markdown("""
     ### How to use this dashboard:

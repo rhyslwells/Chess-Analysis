@@ -15,7 +15,7 @@ from predictor import ChessPredictor
 # Page configuration
 st.set_page_config(
     page_title="Chess Game Analysis Dashboard",
-    page_icon="♟️",
+    page_icon="",
     layout="wide"
 )
 
@@ -28,7 +28,7 @@ if 'username' not in st.session_state:
     st.session_state.username = ""
 
 # Title and description
-st.title("♟️ Chess Game Analysis Dashboard")
+st.title(" Chess Game Analysis Dashboard")
 st.markdown("Analyze your Chess.com games, track performance trends, and predict outcomes.")
 
 # Sidebar for data fetching
@@ -43,7 +43,7 @@ with st.sidebar:
     )
     
     # Quick username examples
-    st.caption("📝 Example usernames: RhysLWells, Hikaru, MagnusCarlsen")
+    st.caption(" Example usernames: RhysLWells, Hikaru, MagnusCarlsen")
     
     # Date range selection
     st.subheader("Fetch Games")
@@ -73,7 +73,7 @@ with st.sidebar:
         else:  # Last 6 Months
             start_date = end_date - timedelta(days=180)
     
-    fetch_button = st.button("🔄 Fetch Games", type="primary", use_container_width=True)
+    fetch_button = st.button(" Fetch Games", type="primary", use_container_width=True)
     
     if fetch_button and username:
         with st.spinner("Fetching games from Chess.com..."):
@@ -90,7 +90,7 @@ with st.sidebar:
                     st.session_state.df = df
                     st.session_state.data_loaded = True
                     st.session_state.username = username
-                    st.success(f"✅ Loaded {len(df)} games!")
+                    st.success(f" Loaded {len(df)} games!")
                 else:
                     st.error("No games found for this period.")
             except Exception as e:
@@ -98,7 +98,7 @@ with st.sidebar:
     
     # Load existing data
     if username and not fetch_button:
-        load_existing = st.button("📂 Load Saved Data", use_container_width=True)
+        load_existing = st.button(" Load Saved Data", use_container_width=True)
         if load_existing:
             try:
                 fetcher = ChessDataFetcher()
@@ -107,7 +107,7 @@ with st.sidebar:
                     st.session_state.df = df
                     st.session_state.data_loaded = True
                     st.session_state.username = username
-                    st.success(f"✅ Loaded {len(df)} games from file!")
+                    st.success(f" Loaded {len(df)} games from file!")
                 else:
                     st.warning("No saved data found. Please fetch games first.")
             except Exception as e:
@@ -119,7 +119,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     analyzer = ChessAnalyzer(df)
     
     # Overall Statistics
-    st.header("📊 Performance Overview")
+    st.header(" Performance Overview")
     st.markdown("""
     <small>Your overall performance summary across all fetched games. Win rate is calculated as wins divided by total games.</small>
     """, unsafe_allow_html=True)
@@ -142,18 +142,18 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     st.divider()
     
     # Charts
-    st.header("📈 Performance Analysis")
+    st.header(" Performance Analysis")
     st.markdown("""
     <small>Dive deeper into your chess performance with visualizations showing trends over time, 
     opening effectiveness, and performance against different opponent strengths.</small>
     """, unsafe_allow_html=True)
     
     tab1, tab2, tab3, tab4 = st.tabs([
-        "📈 Rating Trend", "📊 Results Over Time", "♟️ Opening Performance", "⚔️ Opponent Strength"
+        " Rating Trend", " Results Over Time", " Opening Performance", " Opponent Strength"
     ])
     
     with tab1:
-        st.info("📌 **Analysis**: This chart shows how your rating has changed over time. "
+        st.info(" **Analysis**: This chart shows how your rating has changed over time. "
                 "Look for upward trends (improvement) or periods of volatility (inconsistent performance).")
         rating_trend = analyzer.get_rating_trend()
         fig = px.line(
@@ -167,7 +167,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         st.plotly_chart(fig, use_container_width=True)
     
     with tab2:
-        st.info("📌 **Analysis**: Weekly breakdown of your game results. "
+        st.info(" **Analysis**: Weekly breakdown of your game results. "
                 "Green = Wins, Red = Losses, Gray = Draws. "
                 "Look for patterns or streaks in your performance.")
         results_time = analyzer.get_results_over_time('W')
@@ -183,7 +183,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         st.plotly_chart(fig, use_container_width=True)
     
     with tab3:
-        st.info("📌 **Analysis**: Your most frequently played openings ranked by frequency. "
+        st.info(" **Analysis**: Your most frequently played openings ranked by frequency. "
                 "Color indicates win rate (green = high, red = low). "
                 "Focus on openings with both high frequency and win rate.")
         opening_stats = analyzer.get_opening_stats(top_n=10)
@@ -200,13 +200,13 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        with st.expander("📊 View Detailed Opening Statistics"):
+        with st.expander(" View Detailed Opening Statistics"):
             st.dataframe(opening_stats, use_container_width=True, hide_index=True)
-            st.caption("💡 **Tip**: Look for openings with low win rates but high game counts - "
+            st.caption(" **Tip**: Look for openings with low win rates but high game counts - "
                       "these might be opportunities to refine your repertoire!")
     
     with tab4:
-        st.info("📌 **Analysis**: Win rate comparison against opponents of different strengths. "
+        st.info(" **Analysis**: Win rate comparison against opponents of different strengths. "
                 "**Lower Rated**: Opponents 100+ points below you | "
                 "**Similar Rating**: Within ±100 points | "
                 "**Higher Rated**: Opponents 100+ points above you")
@@ -223,7 +223,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         )
         fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("💡 **Expected**: Higher win rates against lower-rated opponents, "
+        st.caption(" **Expected**: Higher win rates against lower-rated opponents, "
                   "lower win rates against higher-rated opponents")
     
     # Additional stats
@@ -231,22 +231,22 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("⚪⚫ Performance by Color")
+        st.subheader(" Performance by Color")
         st.caption("Compare your win rates when playing as White vs Black")
         color_perf = analyzer.get_color_performance()
         st.dataframe(color_perf, use_container_width=True, hide_index=True)
-        st.caption("💡 **Note**: White typically has a slight statistical advantage due to first move")
+        st.caption(" **Note**: White typically has a slight statistical advantage due to first move")
     
     with col2:
-        st.subheader("⏱️ Performance by Time Control")
+        st.subheader("⏱ Performance by Time Control")
         st.caption("How your performance varies across different time formats")
         tc_stats = analyzer.get_time_control_stats()
         st.dataframe(tc_stats, use_container_width=True, hide_index=True)
-        st.caption("💡 **Tip**: Identify which time controls suit your playing style best")
+        st.caption(" **Tip**: Identify which time controls suit your playing style best")
     
     # Machine Learning Prediction
     st.divider()
-    st.header("🤖 Win Probability Predictor")
+    st.header(" Win Probability Predictor")
     st.markdown("""
     <small>Machine learning model trained on your historical games to predict win probability. 
     The model uses logistic regression with features: your rating, opponent rating, rating difference, and color.</small>
@@ -258,8 +258,8 @@ if st.session_state.data_loaded and st.session_state.df is not None:
             X, y = analyzer.prepare_ml_features()
             metrics = predictor.train(X, y)
             
-            st.success(f"✅ Model trained on {metrics['n_train_samples'] + metrics['n_test_samples']} games")
-            st.caption("🔍 **How it works**: The model learns patterns from your game history - "
+            st.success(f" Model trained on {metrics['n_train_samples'] + metrics['n_test_samples']} games")
+            st.caption(" **How it works**: The model learns patterns from your game history - "
                       "how rating differences and color affect your results")
             
             col1, col2 = st.columns(2)
@@ -268,7 +268,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
             col2.metric("Test Accuracy", f"{metrics['test_accuracy']:.1%}",
                        help="How well the model predicts outcomes on unseen test data")
         
-        st.subheader("🎯 Predict Your Chances")
+        st.subheader(" Predict Your Chances")
         st.caption("Enter match parameters to estimate your winning probability")
         
         col1, col2, col3 = st.columns(3)
@@ -308,14 +308,14 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         )
         
         if win_prob > 0.6:
-            st.success("🎯 **Strong Position**: Historical data suggests you're favored to win")
+            st.success(" **Strong Position**: Historical data suggests you're favored to win")
         elif win_prob < 0.4:
-            st.warning("⚠️ **Challenging Match**: You're the underdog, but upsets happen!")
+            st.warning(" **Challenging Match**: You're the underdog, but upsets happen!")
         else:
-            st.info("⚖️ **Even Match**: This should be a close, competitive game")
+            st.info(" **Even Match**: This should be a close, competitive game")
         
         # Win probability curve
-        st.subheader("📉 Win Probability vs Opponent Rating")
+        st.subheader(" Win Probability vs Opponent Rating")
         st.caption("How your expected win rate changes across different opponent strengths")
         curve_df = predictor.get_win_probability_curve(
             current_rating, is_white=is_white
@@ -331,15 +331,15 @@ if st.session_state.data_loaded and st.session_state.df is not None:
         fig.add_hline(y=0.5, line_dash="dash", line_color="gray", annotation_text="50%")
         fig.update_layout(yaxis_tickformat='.0%')
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("💡 **Interpretation**: The curve shows how rating differences affect your winning chances. "
+        st.caption(" **Interpretation**: The curve shows how rating differences affect your winning chances. "
                   "Steeper curves indicate stronger rating sensitivity.")
     else:
-        st.info("ℹ️ **Insufficient Data**: Need at least 20 games to train a reliable prediction model. Keep playing!")
+        st.info("ℹ **Insufficient Data**: Need at least 20 games to train a reliable prediction model. Keep playing!")
         st.caption("The machine learning model requires a minimum dataset to identify meaningful patterns in your play")
     
     # Recent Games Table
     st.divider()
-    st.header("🎮 Recent Games")
+    st.header(" Recent Games")
     st.caption("Your most recent games with direct links to review them on Chess.com")
     
     recent_games = analyzer.get_recent_games(10)
@@ -375,7 +375,7 @@ if st.session_state.data_loaded and st.session_state.df is not None:
     
     # Download button for data
     st.divider()
-    st.subheader("📥 Export Data")
+    st.subheader(" Export Data")
     st.caption("Download your game data and analysis results for further exploration")
     
     col1, col2 = st.columns(2)
@@ -414,7 +414,7 @@ Overall Statistics:
             )
 
 else:
-    st.info("👈 Enter your Chess.com username and fetch your 5-minute blitz games to get started!")
+    st.info(" Enter your Chess.com username and fetch your 5-minute blitz games to get started!")
     
     st.markdown("""
     ### How to use this dashboard:
