@@ -20,12 +20,12 @@ st.set_page_config(
 )
 
 # Initialize session state
-if 'data_loaded' not in st.session_state: # FIXME example
+if 'data_loaded' not in st.session_state:
     st.session_state.data_loaded = False
 if 'df' not in st.session_state:
     st.session_state.df = None
 if 'username' not in st.session_state:
-    st.session_state.username = "" #TODO example 
+    st.session_state.username = "" 
 
 # Title and description
 st.title(" Chess Game Analysis Dashboard")
