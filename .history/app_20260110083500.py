@@ -3,14 +3,18 @@ app.py
 Main Streamlit dashboard for chess game analysis.
 """
 
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
-from src.data_fetcher import ChessDataFetcher
-from src.analyzer import ChessAnalyzer
-from src.predictor import ChessPredictor
+from data_fetcher import ChessDataFetcher
+from analyzer import ChessAnalyzer
+from predictor import ChessPredictor
 
 # Page configuration
 st.set_page_config(
