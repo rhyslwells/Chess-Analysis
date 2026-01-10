@@ -1,22 +1,4 @@
 """
-Chess Data Fetcher Exploration Script
-
-This script demonstrates how to use the ChessDataFetcher class from src/data_fetcher.py
-to fetch and process chess game data from Chess.com. It can be run in IPython or as a regular Python script.
-
-Overview:
-The ChessDataFetcher class provides methods to:
-- Fetch game archives for a user
-- Download PGN files
-- Parse games from JSON API responses or PGN files
-- Convert data to pandas DataFrames
-- Save processed data to CSV
-
-Setup:
-First, let's import the necessary libraries and the ChessDataFetcher class.
-"""
-
-"""
 explore_data_fetcher.py
 Comprehensive exploration of ChessDataFetcher class functionality.
 
@@ -31,19 +13,13 @@ Usage:
     %run explore_data_fetcher.py
 """
 
-# Import required libraries
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))  # Add parent directory to path
-
-
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
 import time
-from src.data_fetcher import ChessDataFetcher
 
 # Import our data fetcher
+from data_fetcher import ChessDataFetcher
 
 # =============================================================================
 # CONFIGURATION

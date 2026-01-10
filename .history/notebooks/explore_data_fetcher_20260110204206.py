@@ -41,7 +41,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
 import time
-from src.data_fetcher import ChessDataFetcher
 
 # Import our data fetcher
 

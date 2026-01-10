@@ -1,3 +1,4 @@
+Help me build the scripts necessary for this streamlit application. 
 
 # **Chess Game Analysis Dashboard – Project Overview**
 
@@ -56,12 +57,10 @@ The goal of this project is to provide a **lightweight, on-demand analysis tool*
 6. **User Interaction Workflow**
 
    * User opens the dashboard.
-   * Inputs their username and optional date range.
-   * System checks local storage for existing games.
-   * Fetches new games from the API if necessary.
-   * Computes metrics and updates predictive model.
+   * Inputs a chess username and optional date range for games to pull.
+   * Fetches new games from the API
+   * Computes metrics and builds predictive model.
    * Dashboard renders:
-
      * Summary metrics and charts
      * Interactive table of games with clickable links
      * Updated predictions for selected opponent ratings
@@ -87,6 +86,8 @@ The goal of this project is to provide a **lightweight, on-demand analysis tool*
 This project is an **interactive, on-demand chess analysis dashboard**. It prioritizes usability, simplicity, and visual clarity. Users pull data on-demand, explore performance trends, and can access individual games via links. A lightweight predictive model adds an additional layer of insight, demonstrating machine learning application without overcomplicating the tool. Streamlit provides the ideal balance of speed, simplicity, and interactivity, while local CSV storage keeps the system lightweight and maintainable.
 
 # Games specific links 
+
+Get from PGNs
 
 Perfect. Using Streamlit keeps things simple, and we can definitely give users access to individual games without building a full chessboard UI. The key is to think about this as **linking or displaying existing resources** rather than recreating them.
 

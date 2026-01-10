@@ -1,6 +1,5 @@
 Help me build the scripts necessary for this streamlit application. 
 
-
 # **Chess Game Analysis Dashboard – Project Overview**
 
 ## **Purpose**
