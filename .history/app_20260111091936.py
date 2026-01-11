@@ -295,76 +295,42 @@ def render_opponent_strength(analyzer):
     fig.update_traces(texttemplate="%{text:.1f}%")
     st.plotly_chart(fig, use_container_width=True)
 
+
 def render_win_probability(df, analyzer, stats):
     """
-    Logistic regression–based win probability curves.
-
-    The model is trained on historical games.
-    The rating control below enables counterfactual exploration
-    without retraining the model.
+    Logistic regression–based win probability curves
+    for White and Black, filtered by opponent rating.
     """
-
-    # Guardrail: insufficient data
     if len(df) < 20:
         st.info("At least 20 games are required for win probability modelling.")
         return
 
-    # ------------------------------------------------------------------
-    # Train prediction model
-    # ------------------------------------------------------------------
     predictor = ChessPredictor()
     X, y = analyzer.prepare_ml_features()
     predictor.train(X, y)
 
-    # ------------------------------------------------------------------
-    # Rating context (derived consistently with analyzer)
-    # ------------------------------------------------------------------
-    current_rating = int(stats["current_elo"])
-    avg_rating = int(stats["avg_user_rating"])
-
-    st.markdown(
-        f"""
-        **Rating context**
-
-        - Current rating (most recent game): **{current_rating}**
-        - Average rating over selected period: **{avg_rating}**
-
-        The model is trained on your historical games.
-        The control below allows exploration of *what-if* rating scenarios
-        without retraining the model.
-        """
-    )
-
-    # ------------------------------------------------------------------
-    # Counterfactual rating input
-    # ------------------------------------------------------------------
-    assumed_rating = st.number_input(
-        "Assumed player rating (what-if)",
+    current_rating = st.number_input(
+        "Your Rating",
         min_value=400,
         max_value=5000,
-        value=current_rating,
-        step=10,
-        help="Used only to generate win probability curves."
+        value=int(stats["avg_user_rating"]),
     )
 
     min_r, max_r = st.slider(
         "Opponent rating range",
         min_value=400,
-        max_value=3000,
-        value=(assumed_rating - 100, assumed_rating + 100),
-        step=10,
+        max_value=5000,
+        value=(current_rating - 400, current_rating + 400),
+        step=25,
     )
 
-    # ------------------------------------------------------------------
-    # Plot curves by colour
-    # ------------------------------------------------------------------
     for is_white, label in [(True, "White"), (False, "Black")]:
         st.subheader(
-            f"Expected win probability vs opponent rating ({label})"
+            f"How your expected win rate changes across opponent ratings ({label})"
         )
 
         curve = predictor.get_win_probability_curve(
-            assumed_rating,
+            current_rating,
             is_white=is_white,
         )
 
@@ -385,8 +351,8 @@ def render_win_probability(df, analyzer, stats):
 
         fig.add_hline(y=0.5, line_dash="dash")
         fig.update_layout(yaxis_tickformat=".0%")
-
         st.plotly_chart(fig, use_container_width=True)
+
 
 # ==============================================================================
 # Main application flow

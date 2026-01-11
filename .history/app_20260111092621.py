@@ -300,7 +300,7 @@ def render_win_probability(df, analyzer, stats):
     Logistic regression–based win probability curves.
 
     The model is trained on historical games.
-    The rating control below enables counterfactual exploration
+    The rating input below enables counterfactual exploration
     without retraining the model.
     """
 
@@ -310,43 +310,60 @@ def render_win_probability(df, analyzer, stats):
         return
 
     # ------------------------------------------------------------------
-    # Train prediction model
+    # Train prediction model on historical data
     # ------------------------------------------------------------------
     predictor = ChessPredictor()
     X, y = analyzer.prepare_ml_features()
     predictor.train(X, y)
 
     # ------------------------------------------------------------------
-    # Rating context (derived consistently with analyzer)
+    # Derive current rating from the most recent game
     # ------------------------------------------------------------------
-    current_rating = int(stats["current_elo"])
+    # Sort once to avoid accidental dependence on input ordering
+    latest_game = df.sort_values("end_time").iloc[-1]
+
+    # Select the user's rating based on colour played
+    current_rating = (
+        latest_game["white_rating"]
+        if latest_game["is_white"]
+        else latest_game["black_rating"]
+    )
+
+    # Average rating over the selected period (already computed)
     avg_rating = int(stats["avg_user_rating"])
 
+    # ------------------------------------------------------------------
+    # User-facing context note
+    # ------------------------------------------------------------------
     st.markdown(
         f"""
         **Rating context**
 
-        - Current rating (most recent game): **{current_rating}**
+        - Current rating (most recent game): **{int(current_rating)}**
         - Average rating over selected period: **{avg_rating}**
 
         The model is trained on your historical games.
-        The control below allows exploration of *what-if* rating scenarios
+        The control below allows you to explore *what-if* rating scenarios
         without retraining the model.
         """
     )
 
     # ------------------------------------------------------------------
-    # Counterfactual rating input
+    # Counterfactual rating control
     # ------------------------------------------------------------------
     assumed_rating = st.number_input(
         "Assumed player rating (what-if)",
         min_value=400,
         max_value=5000,
-        value=current_rating,
+        value=int(current_rating),
         step=10,
-        help="Used only to generate win probability curves."
+        help=(
+            "Used only to generate win probability curves. "
+            "Historical game data remains unchanged."
+        ),
     )
 
+    # Restrict opponent rating range for readability
     min_r, max_r = st.slider(
         "Opponent rating range",
         min_value=400,
@@ -356,7 +373,7 @@ def render_win_probability(df, analyzer, stats):
     )
 
     # ------------------------------------------------------------------
-    # Plot curves by colour
+    # Plot win probability curves by colour
     # ------------------------------------------------------------------
     for is_white, label in [(True, "White"), (False, "Black")]:
         st.subheader(
@@ -383,6 +400,7 @@ def render_win_probability(df, analyzer, stats):
             },
         )
 
+        # Reference line at 50%
         fig.add_hline(y=0.5, line_dash="dash")
         fig.update_layout(yaxis_tickformat=".0%")
 

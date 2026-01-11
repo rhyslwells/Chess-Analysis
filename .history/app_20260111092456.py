@@ -295,33 +295,36 @@ def render_opponent_strength(analyzer):
     fig.update_traces(texttemplate="%{text:.1f}%")
     st.plotly_chart(fig, use_container_width=True)
 
+
 def render_win_probability(df, analyzer, stats):
     """
     Logistic regression–based win probability curves.
 
     The model is trained on historical games.
-    The rating control below enables counterfactual exploration
-    without retraining the model.
+    The rating input below is a counterfactual control that allows
+    users to explore how win probability would change if their
+    rating were different.
     """
 
-    # Guardrail: insufficient data
+    # Guardrail: insufficient data for stable modelling
     if len(df) < 20:
         st.info("At least 20 games are required for win probability modelling.")
         return
 
     # ------------------------------------------------------------------
-    # Train prediction model
+    # Train prediction model using historical features
     # ------------------------------------------------------------------
     predictor = ChessPredictor()
     X, y = analyzer.prepare_ml_features()
     predictor.train(X, y)
 
     # ------------------------------------------------------------------
-    # Rating context (derived consistently with analyzer)
+    # Reference ratings derived from the dataset
     # ------------------------------------------------------------------
-    current_rating = int(stats["current_elo"])
+    current_rating = int(stats["current_user_rating"])
     avg_rating = int(stats["avg_user_rating"])
 
+    # Display contextual note so the user understands the baseline
     st.markdown(
         f"""
         **Rating context**
@@ -330,13 +333,13 @@ def render_win_probability(df, analyzer, stats):
         - Average rating over selected period: **{avg_rating}**
 
         The model is trained on your historical games.
-        The control below allows exploration of *what-if* rating scenarios
+        The rating input below allows you to explore *what-if* scenarios
         without retraining the model.
         """
     )
 
     # ------------------------------------------------------------------
-    # Counterfactual rating input
+    # Counterfactual rating control (what-if analysis)
     # ------------------------------------------------------------------
     assumed_rating = st.number_input(
         "Assumed player rating (what-if)",
@@ -344,9 +347,13 @@ def render_win_probability(df, analyzer, stats):
         max_value=5000,
         value=current_rating,
         step=10,
-        help="Used only to generate win probability curves."
+        help=(
+            "This value is used only to generate win probability curves. "
+            "The model itself is trained on your historical rating data."
+        ),
     )
 
+    # Opponent rating filter for readability of the curve
     min_r, max_r = st.slider(
         "Opponent rating range",
         min_value=400,
@@ -356,7 +363,7 @@ def render_win_probability(df, analyzer, stats):
     )
 
     # ------------------------------------------------------------------
-    # Plot curves by colour
+    # Plot win probability curves by colour
     # ------------------------------------------------------------------
     for is_white, label in [(True, "White"), (False, "Black")]:
         st.subheader(
@@ -383,10 +390,12 @@ def render_win_probability(df, analyzer, stats):
             },
         )
 
+        # Reference line for 50% expectation
         fig.add_hline(y=0.5, line_dash="dash")
         fig.update_layout(yaxis_tickformat=".0%")
 
         st.plotly_chart(fig, use_container_width=True)
+
 
 # ==============================================================================
 # Main application flow
