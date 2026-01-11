@@ -347,8 +347,8 @@ with tabs[5]:
     min_r, max_r = st.slider(
         "Opponent rating range",
         min_value=400,
-        max_value=3500,
-        value=(current_rating - 100, current_rating + 100),
+        max_value=5000,
+        value=(current_rating - 400, current_rating + 400),
         step=25,
     )
 
