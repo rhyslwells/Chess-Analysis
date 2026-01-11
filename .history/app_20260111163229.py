@@ -57,9 +57,7 @@ def render_sidebar():
             "Chess.com Username",
             value=st.session_state.username,
             placeholder="Enter username",
-            help="Example: RhysLWells, Hikaru, GothamChess",
         )
-
 
         st.subheader("Fetch Games")
         date_option = st.radio(
@@ -434,30 +432,27 @@ def main():
             """
             ### About this dashboard
 
-            This application is a lightweight, on-demand analysis tool for Chess.com players.
+            This application is a lightweight, on-demand analysis tool for Chess.com players.  
             It allows you to fetch your historical games, explore performance trends, and view
             predictions based on your own data.
 
             **How it works**
             1. Enter a Chess.com username and date range in the sidebar  
             2. Fetch games on demand  
-            3. Explore performance metrics, trends, and win-probability estimates
+            3. Explore performance metrics, trends, and win-probability estimates  
+
+            **Key characteristics**
+            - No live data streams or background updates
+            - Analysis runs only when you fetch data
+            - Focus on clarity and interpretability over complexity
+
+            **Game access**
+            Individual games remain accessible via direct links to Chess.com rather than an
+            embedded board, keeping the dashboard fast and easy to maintain.
+
             """
         )
-
-        with st.expander("Further information about this dashboard", expanded=False):
-            st.markdown(
-                """
-                **Key characteristics**
-                - No live data streams or background updates
-                - Analysis runs only when you fetch data
-
-                **Game access**
-                - Individual games remain accessible via direct links to Chess.com.
-                """
-            )
         return
-
 
 
     df = st.session_state.df

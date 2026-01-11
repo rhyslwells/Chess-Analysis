@@ -57,7 +57,7 @@ def render_sidebar():
             "Chess.com Username",
             value=st.session_state.username,
             placeholder="Enter username",
-            help="Example: RhysLWells, Hikaru, GothamChess",
+            help="Example: RhysLWells, hikaru, gothamchess",
         )
 
 

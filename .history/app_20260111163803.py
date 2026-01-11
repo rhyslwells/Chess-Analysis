@@ -57,9 +57,7 @@ def render_sidebar():
             "Chess.com Username",
             value=st.session_state.username,
             placeholder="Enter username",
-            help="Example: RhysLWells, Hikaru, GothamChess",
         )
-
 
         st.subheader("Fetch Games")
         date_option = st.radio(
@@ -456,6 +454,7 @@ def main():
                 - Individual games remain accessible via direct links to Chess.com.
                 """
             )
+
         return
 
 

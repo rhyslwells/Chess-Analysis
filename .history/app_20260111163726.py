@@ -57,9 +57,7 @@ def render_sidebar():
             "Chess.com Username",
             value=st.session_state.username,
             placeholder="Enter username",
-            help="Example: RhysLWells, Hikaru, GothamChess",
         )
-
 
         st.subheader("Fetch Games")
         date_option = st.radio(
@@ -451,11 +449,14 @@ def main():
                 **Key characteristics**
                 - No live data streams or background updates
                 - Analysis runs only when you fetch data
+                - Focus on clarity and interpretability over complexity
 
                 **Game access**
-                - Individual games remain accessible via direct links to Chess.com.
+                Individual games remain accessible via direct links to Chess.com rather than an
+                embedded board. This keeps the dashboard fast, lightweight, and easy to maintain.
                 """
             )
+
         return
 
 
