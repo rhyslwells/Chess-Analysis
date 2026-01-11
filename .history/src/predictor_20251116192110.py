@@ -17,8 +17,8 @@ class ChessPredictor:
     def __init__(self, model_dir="models"):
         """Initialize predictor with model directory."""
         self.model = None
-        # self.model_dir = Path(model_dir)
-        # self.model_dir.mkdir(exist_ok=True)
+        self.model_dir = Path(model_dir)
+        self.model_dir.mkdir(exist_ok=True)
         self.is_trained = False
         
     def train(self, X, y, test_size=0.2):
@@ -119,26 +119,26 @@ class ChessPredictor:
             'win_probability': probabilities
         })
     
-    # def save_model(self, username):
-    #     """Save trained model to disk."""
-    #     if not self.is_trained:
-    #         raise ValueError("No trained model to save")
+    def save_model(self, username):
+        """Save trained model to disk."""
+        if not self.is_trained:
+            raise ValueError("No trained model to save")
         
-    #     model_path = self.model_dir / f"{username}_model.pkl"
-    #     with open(model_path, 'wb') as f:
-    #         pickle.dump(self.model, f)
-    #     print(f"Model saved to {model_path}")
+        model_path = self.model_dir / f"{username}_model.pkl"
+        with open(model_path, 'wb') as f:
+            pickle.dump(self.model, f)
+        print(f"Model saved to {model_path}")
     
-    # def load_model(self, username):
-    #     """Load trained model from disk."""
-    #     model_path = self.model_dir / f"{username}_model.pkl"
-    #     if not model_path.exists():
-    #         raise FileNotFoundError(f"No saved model found for {username}")
+    def load_model(self, username):
+        """Load trained model from disk."""
+        model_path = self.model_dir / f"{username}_model.pkl"
+        if not model_path.exists():
+            raise FileNotFoundError(f"No saved model found for {username}")
         
-    #     with open(model_path, 'rb') as f:
-    #         self.model = pickle.load(f)
-    #     self.is_trained = True
-    #     print(f"Model loaded from {model_path}")
+        with open(model_path, 'rb') as f:
+            self.model = pickle.load(f)
+        self.is_trained = True
+        print(f"Model loaded from {model_path}")
     
     def get_feature_importance(self):
         """Get feature coefficients from logistic regression."""

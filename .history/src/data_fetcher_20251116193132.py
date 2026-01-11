@@ -23,10 +23,10 @@ class ChessDataFetcher:
     
     def __init__(self, data_dir="data"):
         """Initialize fetcher with data directory."""
-        # self.data_dir = Path(data_dir)
-        # self.data_dir.mkdir(exist_ok=True)
-        # self.pgn_dir = self.data_dir / "pgns"
-        # self.pgn_dir.mkdir(exist_ok=True)
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(exist_ok=True)
+        self.pgn_dir = self.data_dir / "pgns"
+        self.pgn_dir.mkdir(exist_ok=True)
         
     def get_archives_list(self, username):
         """
@@ -125,12 +125,12 @@ class ChessDataFetcher:
             month = parts[-1]
             
             pgn_url = f"{archive_url}/pgn"
-            # pgn_path = self.pgn_dir / f"{username}_{year}_{month}.pgn"
+            pgn_path = self.pgn_dir / f"{username}_{year}_{month}.pgn"
             
-            # # Skip if already downloaded
-            # if pgn_path.exists():
-            #     print(f"  Skipping {year}-{month} (already exists)")
-            #     continue
+            # Skip if already downloaded
+            if pgn_path.exists():
+                print(f"  Skipping {year}-{month} (already exists)")
+                continue
             
             print(f"  Downloading {year}-{month}...")
             
@@ -167,7 +167,7 @@ class ChessDataFetcher:
             print(f"No PGN files found for {username}")
             return None
         
-        # merged_path = self.data_dir / f"{username}_all_games.pgn"
+        merged_path = self.data_dir / f"{username}_all_games.pgn"
         
         with open(merged_path, 'w', encoding='utf-8') as outfile:
             for fpath in pgn_files:
@@ -419,26 +419,26 @@ class ChessDataFetcher:
         df = df.drop_duplicates(subset=['timestamp', 'opponent'], keep='first')
         
         # Save to CSV
-        # csv_path = self.data_dir / f"{username}_games.csv"
+        csv_path = self.data_dir / f"{username}_games.csv"
         
-        # # Merge with existing data if it exists
-        # if csv_path.exists():
-        #     existing_df = pd.read_csv(csv_path)
-        #     df = pd.concat([df, existing_df], ignore_index=True)
-        #     df = df.drop_duplicates(subset=['timestamp', 'opponent'], keep='first')
-        #     df = df.sort_values('timestamp', ascending=False)
+        # Merge with existing data if it exists
+        if csv_path.exists():
+            existing_df = pd.read_csv(csv_path)
+            df = pd.concat([df, existing_df], ignore_index=True)
+            df = df.drop_duplicates(subset=['timestamp', 'opponent'], keep='first')
+            df = df.sort_values('timestamp', ascending=False)
         
-        # df.to_csv(csv_path, index=False)
-        # print(f"Saved {len(df)} games to {csv_path}")
+        df.to_csv(csv_path, index=False)
+        print(f"Saved {len(df)} games to {csv_path}")
         
         return df
     
-    # def load_existing_data(self, username):
-    #     """Load existing game data from CSV if it exists."""
-    #     csv_path = self.data_dir / f"{username}_games.csv"
-    #     if csv_path.exists():
-    #         return pd.read_csv(csv_path)
-    #     return None
+    def load_existing_data(self, username):
+        """Load existing game data from CSV if it exists."""
+        csv_path = self.data_dir / f"{username}_games.csv"
+        if csv_path.exists():
+            return pd.read_csv(csv_path)
+        return None
     
     def fetch_and_process_all(self, username):
         """

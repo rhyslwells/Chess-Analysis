@@ -26,7 +26,7 @@ class ChessDataFetcher:
         # self.data_dir = Path(data_dir)
         # self.data_dir.mkdir(exist_ok=True)
         # self.pgn_dir = self.data_dir / "pgns"
-        # self.pgn_dir.mkdir(exist_ok=True)
+        self.pgn_dir.mkdir(exist_ok=True)
         
     def get_archives_list(self, username):
         """
@@ -125,12 +125,12 @@ class ChessDataFetcher:
             month = parts[-1]
             
             pgn_url = f"{archive_url}/pgn"
-            # pgn_path = self.pgn_dir / f"{username}_{year}_{month}.pgn"
+            pgn_path = self.pgn_dir / f"{username}_{year}_{month}.pgn"
             
-            # # Skip if already downloaded
-            # if pgn_path.exists():
-            #     print(f"  Skipping {year}-{month} (already exists)")
-            #     continue
+            # Skip if already downloaded
+            if pgn_path.exists():
+                print(f"  Skipping {year}-{month} (already exists)")
+                continue
             
             print(f"  Downloading {year}-{month}...")
             
