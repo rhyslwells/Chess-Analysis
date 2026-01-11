@@ -521,8 +521,8 @@ def render_win_probability(df, analyzer, stats):
 
     min_r, max_r = st.slider(
         "Opponent rating range",
-        min_value=100,
-        max_value=4000,
+        min_value=400,
+        max_value=3000,
         value=(assumed_rating - 100, assumed_rating + 100),
         step=10,
     )
