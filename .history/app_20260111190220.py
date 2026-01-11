@@ -128,10 +128,12 @@ def render_sidebar():
 # - Average, median, shortest, longest game lengths
 # - Correlation between game length and outcome
 # - Requires `moves_san` column in data
+
 # **`get_game_length_by_result()` - By outcome:**
 # - Average game length for wins, losses, draws
 # - Standard deviation of length by result type
 # - Identifies if you tend to win quick or long games
+
 # **Use case:**
 # - Understand if you perform better in tactical (short) or strategic (long) games
 # - See if losses correlate with game length (e.g., time trouble in long games)
