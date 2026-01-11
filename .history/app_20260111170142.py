@@ -274,12 +274,12 @@ def render_opening_performance(analyzer):
         """
         ### Opening performance
 
-        This section summarises how the users results vary across different chess openings.
-        Openings are ranked by how frequently they appear in games, and coloured
+        This section summarises how your results vary across different chess openings.
+        Openings are ranked by how frequently they appear in your games, and coloured
         by win rate.
 
         The chart answers two questions:
-        - Which openings are played most often
+        - Which openings you play most often
         - Whether those openings tend to produce stronger or weaker results
 
         Below the chart, example games are provided so you can inspect concrete
