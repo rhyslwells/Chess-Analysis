@@ -61,11 +61,10 @@ class ChessDataFetcher:
 
         return all_games
 
-
-
     # ----------------------------
     # PGN parsing
     # ----------------------------
+
 
     def parse_game_from_json(self, game_data, username):
         """
@@ -107,23 +106,12 @@ class ChessDataFetcher:
             if game:
                 headers = game.headers
 
+                opening = headers.get('Opening', 'Unknown')
                 eco = headers.get('ECO', '')
                 eco_url = headers.get(
                     'ECOUrl',
                     'https://www.chess.com/openings/Undefined'
                 )
-
-                # Opening resolution logic (DO NOT overwrite blindly)
-                if 'Opening' in headers and headers['Opening'].strip():
-                    opening = headers['Opening']
-                elif eco_url:
-                    opening = (
-                        eco_url
-                        .rstrip('/')
-                        .split('/')[-1]
-                        .replace('-', ' ')
-                        .title()
-                    )
 
                 # --- Time calculation ---
                 start_time_str = headers.get('StartTime')   # HH:MM:SS
@@ -148,9 +136,8 @@ class ChessDataFetcher:
                         (end_dt - start_dt).total_seconds()
                     )
 
-        except Exception as e:
-            print(f"PGN parsing error: {e}")
-
+        except Exception:
+            pass
 
         # --- Timestamp ---
         end_time = datetime.fromtimestamp(game_data['end_time'])
@@ -173,85 +160,6 @@ class ChessDataFetcher:
             'pgn': pgn_text,
         }
 
-       
-    def parse_game_from_pgn(self, game, username):
-        """
-        Parse a chess.pgn.Game object into structured format.
-        
-        Args:
-            game: chess.pgn.Game object
-            username: User's chess.com username
-            
-        Returns:
-            Dictionary with parsed game information
-        """
-        headers = game.headers
-        
-        # Determine user color
-        white_player = headers.get('White', '').lower()
-        black_player = headers.get('Black', '').lower()
-        user_color = 'white' if white_player == username.lower() else 'black'
-        opponent_color = 'black' if user_color == 'white' else 'white'
-        
-        # Get ratings
-        user_rating = int(headers.get('WhiteElo' if user_color == 'white' else 'BlackElo', 0))
-        opponent_rating = int(headers.get('BlackElo' if user_color == 'white' else 'WhiteElo', 0))
-        opponent_username = headers.get('Black' if user_color == 'white' else 'White', 'Unknown')
-        
-        # Determine result from user perspective
-        result_str = headers.get('Result', '*')
-        if result_str == '1-0':
-            result = 1 if user_color == 'white' else 0
-            result_label = 'Win' if user_color == 'white' else 'Loss'
-        elif result_str == '0-1':
-            result = 0 if user_color == 'white' else 1
-            result_label = 'Loss' if user_color == 'white' else 'Win'
-        elif result_str == '1/2-1/2':
-            result = 0.5
-            result_label = 'Draw'
-        else:
-            result = 0.5
-            result_label = 'Unknown'
-        
-        # Extract moves in SAN notation
-        moves = []
-        board = game.board()
-        node = game
-        while node.variations:
-            next_node = node.variation(0)
-            san = board.san(next_node.move)
-            moves.append(san)
-            board.push(next_node.move)
-            node = next_node
-        
-        # Parse date
-        date_str = headers.get('UTCDate', headers.get('Date', ''))
-        try:
-            date_obj = datetime.strptime(date_str, '%Y.%m.%d')
-            timestamp = int(date_obj.timestamp())
-            date_formatted = date_obj.strftime('%Y-%m-%d')
-        except:
-            timestamp = 0
-            date_formatted = date_str
-        
-        return {
-            'date': date_formatted,
-            'timestamp': timestamp,
-            'user_color': user_color,
-            'user_rating': user_rating,
-            'opponent': opponent_username,
-            'opponent_rating': opponent_rating,
-            'result': result,
-            'result_label': result_label,
-            'opening': headers.get('Opening', 'Unknown'),
-            'eco': headers.get('ECO', ''),
-            'time_control': headers.get('TimeControl', 'unknown'),
-            'game_url': headers.get('Link', ''),
-            'termination': headers.get('Termination', ''),
-            'moves_san': ' '.join(moves)
-        }
-    
-    
 
     def pgn_to_dataframe(self, pgn_path, username):
         """Convert a PGN file to a pandas DataFrame."""

@@ -3,11 +3,19 @@ data_fetcher.py
 Handles fetching game data from Chess.com API and storing it locally.
 """
 
+import glob
 import requests
 import chess.pgn
 import io
 import pandas as pd
 from datetime import datetime
+import time
+
+import requests
+import chess.pgn
+import pandas as pd
+from datetime import datetime
+import io
 import time
 
 class ChessDataFetcher:
@@ -61,144 +69,22 @@ class ChessDataFetcher:
 
         return all_games
 
-
-
     # ----------------------------
     # PGN parsing
     # ----------------------------
-
-    def parse_game_from_json(self, game_data, username):
-        """
-        Parse a single game from JSON API response into structured format.
-        """
-
-        # --- Determine user color ---
-        white_player = game_data['white']['username'].lower()
-        black_player = game_data['black']['username'].lower()
-        user_color = 'white' if white_player == username.lower() else 'black'
-        opponent_color = 'black' if user_color == 'white' else 'white'
-
-        # --- Ratings ---
-        user_rating = game_data[user_color]['rating']
-        opponent_rating = game_data[opponent_color]['rating']
-        opponent_username = game_data[opponent_color]['username']
-
-        # --- Result ---
-        result_str = game_data[user_color].get('result', 'unknown')
-        if result_str == 'win':
-            result = 1
-            result_label = 'Win'
-        elif result_str in ['checkmated', 'resigned', 'timeout', 'abandoned']:
-            result = 0
-            result_label = 'Loss'
-        else:
-            result = 0.5
-            result_label = 'Draw'
-
-        # --- PGN parsing ---
-        pgn_text = game_data.get('pgn', '')
-        opening = 'Unknown'
-        eco = ''
-        eco_url = 'https://www.chess.com/openings/Undefined'
-        game_duration_seconds = None
-
-        try:
-            game = chess.pgn.read_game(io.StringIO(pgn_text))
-            if game:
-                headers = game.headers
-
-                eco = headers.get('ECO', '')
-                eco_url = headers.get(
-                    'ECOUrl',
-                    'https://www.chess.com/openings/Undefined'
-                )
-
-                # Opening resolution logic (DO NOT overwrite blindly)
-                if 'Opening' in headers and headers['Opening'].strip():
-                    opening = headers['Opening']
-                elif eco_url:
-                    opening = (
-                        eco_url
-                        .rstrip('/')
-                        .split('/')[-1]
-                        .replace('-', ' ')
-                        .title()
-                    )
-
-                # --- Time calculation ---
-                start_time_str = headers.get('StartTime')   # HH:MM:SS
-                end_date_str = headers.get('EndDate')       # YYYY.MM.DD
-                end_time_str = headers.get('EndTime')       # HH:MM:SS (optional)
-
-                if start_time_str and end_date_str:
-                    start_dt = datetime.strptime(
-                        f"{end_date_str} {start_time_str}",
-                        "%Y.%m.%d %H:%M:%S"
-                    )
-
-                    if end_time_str:
-                        end_dt = datetime.strptime(
-                            f"{end_date_str} {end_time_str}",
-                            "%Y.%m.%d %H:%M:%S"
-                        )
-                    else:
-                        end_dt = datetime.fromtimestamp(game_data['end_time'])
-
-                    game_duration_seconds = int(
-                        (end_dt - start_dt).total_seconds()
-                    )
-
-        except Exception as e:
-            print(f"PGN parsing error: {e}")
-
-
-        # --- Timestamp ---
-        end_time = datetime.fromtimestamp(game_data['end_time'])
-
-        return {
-            'date': end_time.strftime('%Y-%m-%d'),
-            'timestamp': game_data['end_time'],
-            'user_color': user_color,
-            'user_rating': user_rating,
-            'opponent': opponent_username,
-            'opponent_rating': opponent_rating,
-            'result': result,
-            'result_label': result_label,
-            'opening': opening,
-            'eco': eco,
-            'eco_url': eco_url,
-            'time_control': game_data.get('time_class', 'unknown'),
-            'game_url': game_data.get('url', ''),
-            'game_duration_seconds': game_duration_seconds,
-            'pgn': pgn_text,
-        }
-
-       
     def parse_game_from_pgn(self, game, username):
-        """
-        Parse a chess.pgn.Game object into structured format.
-        
-        Args:
-            game: chess.pgn.Game object
-            username: User's chess.com username
-            
-        Returns:
-            Dictionary with parsed game information
-        """
+        """Parse a chess.pgn.Game object into structured format."""
         headers = game.headers
-        
-        # Determine user color
+
         white_player = headers.get('White', '').lower()
         black_player = headers.get('Black', '').lower()
         user_color = 'white' if white_player == username.lower() else 'black'
         opponent_color = 'black' if user_color == 'white' else 'white'
-        
-        # Get ratings
+
         user_rating = int(headers.get('WhiteElo' if user_color == 'white' else 'BlackElo', 0))
         opponent_rating = int(headers.get('BlackElo' if user_color == 'white' else 'WhiteElo', 0))
         opponent_username = headers.get('Black' if user_color == 'white' else 'White', 'Unknown')
-        
-        # Determine result from user perspective
+
         result_str = headers.get('Result', '*')
         if result_str == '1-0':
             result = 1 if user_color == 'white' else 0
@@ -212,8 +98,7 @@ class ChessDataFetcher:
         else:
             result = 0.5
             result_label = 'Unknown'
-        
-        # Extract moves in SAN notation
+
         moves = []
         board = game.board()
         node = game
@@ -223,8 +108,7 @@ class ChessDataFetcher:
             moves.append(san)
             board.push(next_node.move)
             node = next_node
-        
-        # Parse date
+
         date_str = headers.get('UTCDate', headers.get('Date', ''))
         try:
             date_obj = datetime.strptime(date_str, '%Y.%m.%d')
@@ -233,7 +117,7 @@ class ChessDataFetcher:
         except:
             timestamp = 0
             date_formatted = date_str
-        
+
         return {
             'date': date_formatted,
             'timestamp': timestamp,
@@ -250,8 +134,6 @@ class ChessDataFetcher:
             'termination': headers.get('Termination', ''),
             'moves_san': ' '.join(moves)
         }
-    
-    
 
     def pgn_to_dataframe(self, pgn_path, username):
         """Convert a PGN file to a pandas DataFrame."""
@@ -268,29 +150,16 @@ class ChessDataFetcher:
     # ----------------------------
     # Process and save
     # ----------------------------
-    def process_and_save(self, username, games, mode='json'):
+    def process_and_save(self, username, games, mode='pgn'):
         """
-        Process games and save to CSV.
-        
-        Args:
-            username: Chess.com username
-            games: List of raw game data (JSON) or path to PGN file
-            mode: 'json' for API data or 'pgn' for PGN file
-            
-        Returns:
-            DataFrame of processed games
+        Process games and return DataFrame.
+        mode='pgn': games is path to PGN file
         """
         if mode == 'pgn':
-            # games should be a path to PGN file
             df = self.pgn_to_dataframe(games, username)
         else:
-            # games is a list of JSON game objects
-            processed_games = [self.parse_game_from_json(game, username) for game in games]
-            df = pd.DataFrame(processed_games)
-        
-        # Sort by date
+            raise NotImplementedError("Only 'pgn' mode is supported in minimal version")
+
         df = df.sort_values('timestamp', ascending=False)
-        
-        # Remove duplicates based on timestamp and opponent
         df = df.drop_duplicates(subset=['timestamp', 'opponent'], keep='first')
         return df

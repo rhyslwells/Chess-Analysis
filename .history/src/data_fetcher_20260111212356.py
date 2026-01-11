@@ -67,6 +67,30 @@ class ChessDataFetcher:
     # PGN parsing
     # ----------------------------
 
+    def _extract_opening_from_pgn(self, pgn_text):
+        """
+        Extract opening name and ECO code from PGN text.
+        
+        Args:
+            pgn_text: PGN format game text
+            
+        Returns:
+            Tuple of (opening_name, eco_code)
+        """
+        try:
+            pgn = io.StringIO(pgn_text)
+            game = chess.pgn.read_game(pgn)
+            if game:
+                opening = game.headers.get('Opening', 
+                    game.headers.get('ECOUrl', 'Unknown').split('/')[-1].replace('-', ' ').title()
+                )
+                eco = game.headers.get('ECO', '')
+                return opening, eco
+            return 'Unknown', ''
+        except:
+            return 'Unknown', ''
+  
+
     def parse_game_from_json(self, game_data, username):
         """
         Parse a single game from JSON API response into structured format.
@@ -97,8 +121,7 @@ class ChessDataFetcher:
 
         # --- PGN parsing ---
         pgn_text = game_data.get('pgn', '')
-        opening = 'Unknown'
-        eco = ''
+        opening, eco = self._extract_opening_from_pgn(pgn_text)
         eco_url = 'https://www.chess.com/openings/Undefined'
         game_duration_seconds = None
 
@@ -107,23 +130,12 @@ class ChessDataFetcher:
             if game:
                 headers = game.headers
 
+                opening = headers.get('Opening', 'Unknown')
                 eco = headers.get('ECO', '')
                 eco_url = headers.get(
                     'ECOUrl',
                     'https://www.chess.com/openings/Undefined'
                 )
-
-                # Opening resolution logic (DO NOT overwrite blindly)
-                if 'Opening' in headers and headers['Opening'].strip():
-                    opening = headers['Opening']
-                elif eco_url:
-                    opening = (
-                        eco_url
-                        .rstrip('/')
-                        .split('/')[-1]
-                        .replace('-', ' ')
-                        .title()
-                    )
 
                 # --- Time calculation ---
                 start_time_str = headers.get('StartTime')   # HH:MM:SS
@@ -148,9 +160,8 @@ class ChessDataFetcher:
                         (end_dt - start_dt).total_seconds()
                     )
 
-        except Exception as e:
-            print(f"PGN parsing error: {e}")
-
+        except Exception:
+            pass
 
         # --- Timestamp ---
         end_time = datetime.fromtimestamp(game_data['end_time'])
