@@ -315,10 +315,7 @@ def render_opponent_strength(analyzer):
     )
 
     # Force 0 decimal places in bar labels
-    fig.update_traces(
-    texttemplate="%{text:.0f}%",
-    hovertemplate="Win Rate: %{y:.0f}%<extra></extra>")
-
+    fig.update_traces(texttemplate="%{text:.0f}%")
 
     fig.update_layout(title="Win Rate by Opponent Strength Category")
 

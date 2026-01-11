@@ -277,6 +277,7 @@ def render_opening_performance(analyzer):
 
     st.plotly_chart(fig, use_container_width=True)
 
+
 def render_opponent_strength(analyzer):
     """
     Win rate grouped by opponent rating bands.
@@ -289,8 +290,8 @@ def render_opponent_strength(analyzer):
         """
         **Opponent strength categories**
 
-        Historical games are grouped using the rating difference (user rating - opponent rating).
-
+        Historical games are grouped using the rating difference (user rating - opponent rating) 
+        
         - **Lower Rated**: opponent rating is more than 50 points below yours.
         - **Similar Rating**: opponent rating within ±50 points of yours.
         - **Higher Rated**: opponent rating is more than 50 points above yours.
@@ -311,15 +312,12 @@ def render_opponent_strength(analyzer):
         color="win_rate",
         text="win_rate",
         color_continuous_scale="RdYlGn",
+        text_auto=".0f",  # round win label to 0 decimal places
+        color_continuous_scale="RdYlGn",    # round to 0 decimal places
         labels={"win_rate": "Win Rate (%)"},
     )
 
-    # Force 0 decimal places in bar labels
-    fig.update_traces(
-    texttemplate="%{text:.0f}%",
-    hovertemplate="Win Rate: %{y:.0f}%<extra></extra>")
-
-
+    fig.update_traces(texttemplate="%{text:.1f}%") 
     fig.update_layout(title="Win Rate by Opponent Strength Category")
 
     st.plotly_chart(fig, use_container_width=True)
