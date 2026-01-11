@@ -229,9 +229,10 @@ Average Rating: {stats['avg_user_rating']:.0f}
             use_container_width=True,
         )
 
+
 def render_rating_trend(analyzer):
     """
-    Displays rating progression over time and key rating volatility metrics.
+    Displays rating progression over time, including smoothed trends and volatility.
     """
 
     # ------------------------------------------------------------------
@@ -239,12 +240,16 @@ def render_rating_trend(analyzer):
     # ------------------------------------------------------------------
     st.markdown(
         """
-        ### Rating Trend
+        ### Rating Trend Overview
 
-        This tab shows your rating progression over time. 
-        The chart displays how your rating has changed per game.
-        
-        Below, key metrics summarise rating volatility.
+        This tab shows how your chess rating has changed over time. The main line chart displays
+        your **raw rating per game**, while the smoothed line (rolling average) highlights the
+        general trend by reducing short-term fluctuations.
+
+        Additional metrics provide insight into the volatility of your rating changes:
+        - **Volatility**: Standard deviation of rating changes
+        - **Average change**: Mean absolute change per game
+        - **Max gain / loss**: Largest single game rating change
         """
     )
 
@@ -252,11 +257,11 @@ def render_rating_trend(analyzer):
     # Rating trend data
     # ------------------------------------------------------------------
     rating_trend = analyzer.get_rating_trend()
-    stats = analyzer.get_overall_stats()
+    smoothed_trend = analyzer.get_rating_trend_with_smoothing(window=20)
     volatility_stats = analyzer.get_rating_volatility()
 
     # ------------------------------------------------------------------
-    # Chart: raw rating over time
+    # Chart: raw + smoothed rating
     # ------------------------------------------------------------------
     fig = px.line(
         rating_trend,
@@ -266,33 +271,34 @@ def render_rating_trend(analyzer):
         title="Rating Progression Over Time",
     )
 
+    # Add smoothed line
+    fig.add_scatter(
+        x=smoothed_trend["date"],
+        y=smoothed_trend["elo_smooth"],
+        mode="lines",
+        name="Smoothed (20-game rolling avg)",
+        line=dict(color="orange", width=2),
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
+    # ------------------------------------------------------------------
+    # Volatility summary
+    # ------------------------------------------------------------------
+    st.markdown("### Rating Volatility Metrics")
+    st.markdown(
+        f"""
+        - **Volatility (std. dev.)**: {volatility_stats['volatility']:.2f} points  
+        - **Average rating change per game**: {volatility_stats['avg_rating_change']:.2f} points  
+        - **Maximum single-game gain**: +{volatility_stats['max_rating_gain']:.2f} points  
+        - **Maximum single-game loss**: {volatility_stats['max_rating_loss']:.2f} points
+        """
+    )
 
-    # ------------------------------------------------------------------
-    # Volatility details as metrics with tooltips
-    # ------------------------------------------------------------------
-    st.markdown("### Volatility Metrics")
-    v1, v2, v3, v4 = st.columns(4)
-    v1.metric(
-        "Volatility (std dev.)",
-        f"{volatility_stats['volatility']:.2f}",
-        help="Standard deviation of single-game rating changes"
-    )
-    v2.metric(
-        "Avg Rating Change",
-        f"{volatility_stats['avg_rating_change']:.2f}",
-        help="Mean absolute rating change per game"
-    )
-    v3.metric(
-        "Max Gain",
-        f"+{volatility_stats['max_rating_gain']:.2f}",
-        help="Largest single-game rating increase"
-    )
-    v4.metric(
-        "Max Loss",
-        f"{volatility_stats['max_rating_loss']:.2f}",
-        help="Largest single-game rating decrease"
+    # Optional: note for user
+    st.info(
+        "Smoothed rating helps identify long-term trends without being distracted "
+        "by individual game swings. Volatility metrics provide context on consistency."
     )
 
 

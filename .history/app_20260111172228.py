@@ -239,12 +239,12 @@ def render_rating_trend(analyzer):
     # ------------------------------------------------------------------
     st.markdown(
         """
-        ### Rating Trend
+        ### Rating Trend Overview
 
         This tab shows your rating progression over time. 
         The chart displays how your rating has changed per game.
         
-        Below, key metrics summarise rating volatility.
+        Below, key metrics summarize rating volatility and overall game outcomes.
         """
     )
 

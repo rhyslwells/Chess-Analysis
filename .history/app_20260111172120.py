@@ -239,12 +239,12 @@ def render_rating_trend(analyzer):
     # ------------------------------------------------------------------
     st.markdown(
         """
-        ### Rating Trend
+        ### Rating Trend Overview
 
         This tab shows your rating progression over time. 
         The chart displays how your rating has changed per game.
         
-        Below, key metrics summarise rating volatility.
+        Below, key metrics summarize rating volatility and overall game outcomes.
         """
     )
 
@@ -268,6 +268,20 @@ def render_rating_trend(analyzer):
 
     st.plotly_chart(fig, use_container_width=True)
 
+    # ------------------------------------------------------------------
+    # Headline metrics
+    # ------------------------------------------------------------------
+    st.markdown("### Key Metrics")
+    c1, c2= st.columns(2)
+    # c1.metric("Games", stats["total_games"])
+    # c2.metric("Wins", stats["wins"])
+    # c3.metric("Losses", stats["losses"])
+    c1.metric("Average Rating", f"{stats['avg_user_rating']:.0f}")
+    c2.metric(
+        "Average Change",
+        f"{volatility_stats['avg_rating_change']:.2f}",
+        help="Mean absolute rating change per game"
+    )
 
     # ------------------------------------------------------------------
     # Volatility details as metrics with tooltips

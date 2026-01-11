@@ -13,6 +13,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import numpy as np
+from scipy.interpolate import make_interp_spline
+
 
 from src.data_fetcher import ChessDataFetcher
 from src.analyzer import ChessAnalyzer
@@ -229,9 +232,10 @@ Average Rating: {stats['avg_user_rating']:.0f}
             use_container_width=True,
         )
 
+
 def render_rating_trend(analyzer):
     """
-    Displays rating progression over time and key rating volatility metrics.
+    Displays rating progression over time with smoothed curve and key metrics.
     """
 
     # ------------------------------------------------------------------
@@ -239,12 +243,12 @@ def render_rating_trend(analyzer):
     # ------------------------------------------------------------------
     st.markdown(
         """
-        ### Rating Trend
+        ### Rating Trend Overview
 
-        This tab shows your rating progression over time. 
-        The chart displays how your rating has changed per game.
-        
-        Below, key metrics summarise rating volatility.
+        This tab shows your rating progression over time. The smoothed curve highlights
+        the long-term trend without being distracted by short-term fluctuations.
+
+        Metrics below summarize rating volatility and overall game outcomes.
         """
     )
 
@@ -252,11 +256,23 @@ def render_rating_trend(analyzer):
     # Rating trend data
     # ------------------------------------------------------------------
     rating_trend = analyzer.get_rating_trend()
-    stats = analyzer.get_overall_stats()
+    smoothed_trend = analyzer.get_rating_trend_with_smoothing(window=20)
     volatility_stats = analyzer.get_rating_volatility()
+    stats = analyzer.get_overall_stats()
 
     # ------------------------------------------------------------------
-    # Chart: raw rating over time
+    # Smoothed line with spline interpolation for a curved line
+    # ------------------------------------------------------------------
+    x_numeric = np.arange(len(smoothed_trend))
+    spline = make_interp_spline(x_numeric, smoothed_trend["elo_smooth"], k=3)  # cubic spline
+    x_smooth = np.linspace(x_numeric.min(), x_numeric.max(), 500)
+    y_smooth = spline(x_smooth)
+
+    # Map spline x back to dates
+    dates_smooth = np.interp(x_smooth, x_numeric, smoothed_trend["date"].astype(np.int64))
+
+    # ------------------------------------------------------------------
+    # Chart: raw + smoothed rating
     # ------------------------------------------------------------------
     fig = px.line(
         rating_trend,
@@ -264,35 +280,33 @@ def render_rating_trend(analyzer):
         y="user_rating",
         labels={"date": "Date", "user_rating": "Rating"},
         title="Rating Progression Over Time",
+        line_shape="linear",  # raw rating is linear
+    )
+
+    # Add smooth spline line
+    fig.add_scatter(
+        x=smoothed_trend["date"],
+        y=y_smooth,
+        mode="lines",
+        name="Smoothed (Curved)",
+        line=dict(color="orange", width=3),
     )
 
     st.plotly_chart(fig, use_container_width=True)
 
-
     # ------------------------------------------------------------------
-    # Volatility details as metrics with tooltips
+    # Headline metrics in columns
     # ------------------------------------------------------------------
-    st.markdown("### Volatility Metrics")
-    v1, v2, v3, v4 = st.columns(4)
-    v1.metric(
-        "Volatility (std dev.)",
-        f"{volatility_stats['volatility']:.2f}",
-        help="Standard deviation of single-game rating changes"
-    )
-    v2.metric(
-        "Avg Rating Change",
+    st.markdown("### Key Metrics")
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Games", stats["total_games"])
+    c2.metric("Wins", stats["wins"])
+    c3.metric("Losses", stats["losses"])
+    c4.metric("Avg Rating", f"{stats['avg_user_rating']:.0f}")
+    c5.metric(
+        "Avg Change",
         f"{volatility_stats['avg_rating_change']:.2f}",
         help="Mean absolute rating change per game"
-    )
-    v3.metric(
-        "Max Gain",
-        f"+{volatility_stats['max_rating_gain']:.2f}",
-        help="Largest single-game rating increase"
-    )
-    v4.metric(
-        "Max Loss",
-        f"{volatility_stats['max_rating_loss']:.2f}",
-        help="Largest single-game rating decrease"
     )
 
 
