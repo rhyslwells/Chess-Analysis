@@ -119,6 +119,72 @@ def render_sidebar():
 # Tab renderers
 # ==============================================================================
 
+def render_game_length_analysis(analyzer):
+    """
+    Game length analysis based on wall-clock duration.
+    """
+
+    st.subheader("Game Length Analysis")
+    st.caption(
+        "Game length is measured as wall-clock duration (seconds) "
+        "derived from PGN timestamps."
+    )
+
+    # ------------------------------------------------------------------
+    # Overall stats
+    # ------------------------------------------------------------------
+    stats = analyzer.get_game_length_stats()
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+
+    c1.metric("Average", f"{stats['average'] / 60:.1f} min")
+    c2.metric("Median", f"{stats['median'] / 60:.1f} min")
+    c3.metric("Shortest", f"{stats['shortest'] / 60:.1f} min")
+    c4.metric("Longest", f"{stats['longest'] / 60:.1f} min")
+    c5.metric(
+        "Corr (Length vs Result)",
+        f"{stats['length_result_corr']:.2f}",
+        help="Positive values mean longer games correlate with better results",
+    )
+
+    st.divider()
+
+    # ------------------------------------------------------------------
+    # By result
+    # ------------------------------------------------------------------
+    st.subheader("Game Length by Result")
+
+    by_result = analyzer.get_game_length_by_result()
+    by_result["Average Length (min)"] = by_result["Average Length (s)"] / 60
+    by_result["Std Dev (min)"] = by_result["Std Dev (s)"] / 60
+
+    st.dataframe(
+        by_result[
+            [
+                "Result",
+                "Games",
+                "Average Length (min)",
+                "Std Dev (min)",
+            ]
+        ],
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    # ------------------------------------------------------------------
+    # Visual comparison
+    # ------------------------------------------------------------------
+    fig = px.bar(
+        by_result,
+        x="Result",
+        y="Average Length (s)",
+        color="Result",
+        labels={"Average Length (s)": "Average Game Length (seconds)"},
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+
 
 def render_performance_overview(df, analyzer, username):
     """
@@ -495,6 +561,7 @@ def render_opponent_strength(analyzer):
 
     st.plotly_chart(fig, use_container_width=True)
 
+
 def render_win_probability(df, analyzer, stats):
     """
     Logistic regression–based win probability curves.
@@ -587,114 +654,6 @@ def render_win_probability(df, analyzer, stats):
         fig.update_layout(yaxis_tickformat=".0%")
 
         st.plotly_chart(fig, use_container_width=True)
-
-def render_game_length_analysis(analyzer):
-    """
-    Game length analysis based on wall-clock duration.
-    """
-
-    st.subheader("Game Length Analysis")
-    st.caption(
-        "Game length is measured as wall-clock duration (seconds) "
-        "derived from PGN timestamps."
-    )
-
-    # ------------------------------------------------------------------
-    # Overall stats
-    # ------------------------------------------------------------------
-    stats = analyzer.get_game_length_stats()
-
-    c1, c2, c3, c4, c5 = st.columns(5)
-
-    c1.metric("Average", f"{stats['average']:.0f} sec")
-    c2.metric("Median", f"{stats['median']:.0f} sec")
-    c3.metric("Shortest", f"{stats['shortest']:.0f} sec")
-    c4.metric("Longest", f"{stats['longest']:.0f} sec")
-    c5.metric(
-        "Corr (Length vs Result)",
-        f"{stats['length_result_corr']:.2f}",
-        help="Positive values mean longer games correlate with better results",
-    )
-
-    st.divider()
-
-    # ------------------------------------------------------------------
-    # By result
-    # ------------------------------------------------------------------
-    st.subheader("Game Length by Result")
-
-    by_result = analyzer.get_game_length_by_result()
-
-    st.dataframe(
-        by_result[
-            [
-                "Result",
-                "Games",
-                "Average Length (s)",
-                "Std Dev (s)",
-            ]
-        ],
-        hide_index=True,
-        use_container_width=True,
-    )
-
-    # ------------------------------------------------------------------
-    # Visual comparison - Bar chart
-    # ------------------------------------------------------------------
-    fig = px.bar(
-        by_result,
-        x="Result",
-        y="Average Length (s)",
-        color="Result",
-        labels={"Average Length (s)": "Average Game Length (seconds)"},
-        title="Average Game Length by Result",
-    )
-    
-    # Round y-axis labels to nearest second
-    fig.update_yaxes(tickformat=".0f")
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.divider()
-
-    # ------------------------------------------------------------------
-    # Scatter: Game length vs opponent rating
-    # ------------------------------------------------------------------
-    st.subheader("Game Length vs Opponent Rating")
-    st.caption("Explore how game duration varies with opponent strength and outcome")
-
-    df = analyzer.df.dropna(subset=["game_duration_seconds", "opponent_rating"])
-
-    fig_scatter = px.scatter(
-        df,
-        x="opponent_rating",
-        y="game_duration_seconds",
-        color="result_label",
-        color_discrete_map={
-            "Win": "green",
-            "Loss": "red",
-            "Draw": "orange"
-        },
-        labels={
-            "opponent_rating": "Opponent Rating",
-            "game_duration_seconds": "Game Length (seconds)",
-            "result_label": "Result"
-        },
-        title="Game Length vs Opponent Rating",
-        opacity=0.6,
-        hover_data={
-            "opponent": True,
-            "opening": True,
-            "date": True,
-            "game_duration_seconds": ":.0f",
-            "opponent_rating": True,
-        }
-    )
-
-    # Round y-axis to nearest second
-    fig_scatter.update_yaxes(tickformat=".0f")
-
-    st.plotly_chart(fig_scatter, use_container_width=True)
 
 # ==============================================================================
 # Main application flow

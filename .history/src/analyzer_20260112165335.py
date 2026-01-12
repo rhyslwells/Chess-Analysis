@@ -283,30 +283,30 @@ class ChessAnalyzer:
             "length_result_corr": corr,
         }
     
-    def get_game_length_by_result(self):
-        """
-        Game-length statistics grouped by outcome.
-        """
-        df = self.df.dropna(subset=["game_duration_seconds"])
+def get_game_length_by_result(self):
+    """
+    Game-length statistics grouped by outcome.
+    """
+    df = self.df.dropna(subset=["game_duration_seconds"])
 
-        grouped = (
-            df.groupby("result_label")["game_duration_seconds"]
-            .agg(["mean", "std", "count"])
-            .reset_index()
-        )
+    grouped = (
+        df.groupby("result_label")["game_duration_seconds"]
+        .agg(["mean", "std", "count"])
+        .reset_index()
+    )
 
-        grouped.rename(
-            columns={
-                "result_label": "Result",
-                "mean": "Average Length (s)",
-                "std": "Std Dev (s)",
-                "count": "Games",
-            },
-            inplace=True,
-        )
-        
-        # Round to nearest second
-        grouped["Average Length (s)"] = grouped["Average Length (s)"].round(0)
-        grouped["Std Dev (s)"] = grouped["Std Dev (s)"].round(0)
+    grouped.rename(
+        columns={
+            "result_label": "Result",
+            "mean": "Average Length (s)",
+            "std": "Std Dev (s)",
+            "count": "Games",
+        },
+        inplace=True,
+    )
+    
+    # Round to nearest second
+    grouped["Average Length (s)"] = grouped["Average Length (s)"].round(0)
+    grouped["Std Dev (s)"] = grouped["Std Dev (s)"].round(0)
 
-        return grouped
+    return grouped

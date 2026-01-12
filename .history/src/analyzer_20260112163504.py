@@ -102,6 +102,8 @@ class ChessAnalyzer:
         
         return pd.DataFrame(results)
     
+
+
     def get_opening_stats(self, top_n=10):
         """Analyze performance by opening."""
         opening_groups = self.df.groupby('opening').agg({
@@ -120,6 +122,8 @@ class ChessAnalyzer:
         trend['date'] = pd.to_datetime(trend['date'])
         return trend
     
+
+
     def get_rating_volatility(self):
         """
         Calculate rating volatility (standard deviation of rating changes).
@@ -141,6 +145,31 @@ class ChessAnalyzer:
             'max_rating_gain': max_gain,
             'max_rating_loss': max_loss
         }
+    
+
+    def get_peaks_and_troughs(self):
+        """
+        Identify local peaks and troughs in rating progression.
+        
+        Returns:
+            Tuple of (peaks_df, troughs_df)
+        """
+        df_sorted = self.df.sort_values('timestamp').copy()
+        
+        df_sorted['peak'] = (
+            (df_sorted['user_rating'] > df_sorted['user_rating'].shift(1)) & 
+            (df_sorted['user_rating'] > df_sorted['user_rating'].shift(-1))
+        )
+        
+        df_sorted['trough'] = (
+            (df_sorted['user_rating'] < df_sorted['user_rating'].shift(1)) & 
+            (df_sorted['user_rating'] < df_sorted['user_rating'].shift(-1))
+        )
+        
+        peaks = df_sorted[df_sorted['peak']][['date', 'user_rating', 'game_num']]
+        troughs = df_sorted[df_sorted['trough']][['date', 'user_rating', 'game_num']]
+        
+        return peaks, troughs
     
     def get_results_over_time(self, period='M'):
         """
@@ -164,6 +193,67 @@ class ChessAnalyzer:
         }).fillna(0)
         
         return results_df
+    
+    def get_rolling_win_rate(self, window=20):
+        """
+        Calculate rolling win rate over time.
+        
+        Args:
+            window: Number of games for rolling window
+            
+        Returns:
+            Series with rolling win rate
+        """
+        df_sorted = self.df.sort_values('timestamp').copy()
+        rolling_wr = df_sorted['result'].rolling(
+            window=window, 
+            min_periods=1
+        ).mean()
+        
+        return pd.DataFrame({
+            'game_num': df_sorted['game_num'],
+            'date': df_sorted['date'],
+            'user_rating': df_sorted['user_rating'],
+            'rolling_win_rate': rolling_wr
+        })
+    
+    def get_rolling_performance_by_rating(self, window=20):
+        """
+        Get rolling win rate split by opponent strength.
+        
+        Args:
+            window: Number of games for rolling window
+            
+        Returns:
+            DataFrame with rolling performance vs higher/lower rated opponents
+        """
+        df_sorted = self.df.sort_values('timestamp').copy()
+        
+        # Create scores only for specific opponent categories
+        df_sorted['score_vs_higher'] = df_sorted.apply(
+            lambda r: r['result'] if r['rating_diff'] < 0 else np.nan,
+            axis=1
+        )
+        df_sorted['score_vs_lower'] = df_sorted.apply(
+            lambda r: r['result'] if r['rating_diff'] > 0 else np.nan,
+            axis=1
+        )
+        
+        rolling_higher = df_sorted['score_vs_higher'].rolling(
+            window=window, 
+            min_periods=1
+        ).mean()
+        rolling_lower = df_sorted['score_vs_lower'].rolling(
+            window=window, 
+            min_periods=1
+        ).mean()
+        
+        return pd.DataFrame({
+            'game_num': df_sorted['game_num'],
+            'date': df_sorted['date'],
+            'vs_higher_rated': rolling_higher,
+            'vs_lower_rated': rolling_lower
+        })
     
     def get_color_performance(self):
         """Analyze performance by color (white vs black)."""
@@ -262,6 +352,7 @@ class ChessAnalyzer:
         
         return features, y
     
+
     def get_game_length_stats(self):
         """
         Overall game-length statistics based on wall-clock duration.
@@ -282,7 +373,6 @@ class ChessAnalyzer:
             "longest": max_len,
             "length_result_corr": corr,
         }
-    
     def get_game_length_by_result(self):
         """
         Game-length statistics grouped by outcome.
@@ -304,9 +394,6 @@ class ChessAnalyzer:
             },
             inplace=True,
         )
-        
-        # Round to nearest second
-        grouped["Average Length (s)"] = grouped["Average Length (s)"].round(0)
-        grouped["Std Dev (s)"] = grouped["Std Dev (s)"].round(0)
 
         return grouped
+

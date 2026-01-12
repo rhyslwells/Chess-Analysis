@@ -102,6 +102,8 @@ class ChessAnalyzer:
         
         return pd.DataFrame(results)
     
+
+
     def get_opening_stats(self, top_n=10):
         """Analyze performance by opening."""
         opening_groups = self.df.groupby('opening').agg({
@@ -120,6 +122,8 @@ class ChessAnalyzer:
         trend['date'] = pd.to_datetime(trend['date'])
         return trend
     
+
+
     def get_rating_volatility(self):
         """
         Calculate rating volatility (standard deviation of rating changes).
@@ -142,6 +146,8 @@ class ChessAnalyzer:
             'max_rating_loss': max_loss
         }
     
+
+
     def get_results_over_time(self, period='M'):
         """
         Get win/loss/draw counts over time periods.
@@ -165,6 +171,8 @@ class ChessAnalyzer:
         
         return results_df
     
+
+
     def get_color_performance(self):
         """Analyze performance by color (white vs black)."""
         color_stats = []
@@ -262,6 +270,7 @@ class ChessAnalyzer:
         
         return features, y
     
+
     def get_game_length_stats(self):
         """
         Overall game-length statistics based on wall-clock duration.
@@ -282,7 +291,6 @@ class ChessAnalyzer:
             "longest": max_len,
             "length_result_corr": corr,
         }
-    
     def get_game_length_by_result(self):
         """
         Game-length statistics grouped by outcome.
@@ -304,9 +312,6 @@ class ChessAnalyzer:
             },
             inplace=True,
         )
-        
-        # Round to nearest second
-        grouped["Average Length (s)"] = grouped["Average Length (s)"].round(0)
-        grouped["Std Dev (s)"] = grouped["Std Dev (s)"].round(0)
 
         return grouped
+
