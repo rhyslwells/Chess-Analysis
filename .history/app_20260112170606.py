@@ -41,8 +41,7 @@ if "df" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
-if "selected_time_controls" not in st.session_state:
-    st.session_state.selected_time_controls = []
+
 # ==============================================================================
 # Sidebar: data fetching (kept intentionally simple)
 # ==============================================================================

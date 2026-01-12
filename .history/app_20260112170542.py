@@ -41,8 +41,7 @@ if "df" not in st.session_state:
 if "username" not in st.session_state:
     st.session_state.username = ""
 
-if "selected_time_controls" not in st.session_state:
-    st.session_state.selected_time_controls = []
+
 # ==============================================================================
 # Sidebar: data fetching (kept intentionally simple)
 # ==============================================================================
@@ -764,27 +763,10 @@ def main():
             )
         return
 
-    # ------------------------------------------------------------------
-    # Apply time control filter
-    # ------------------------------------------------------------------
-    df = st.session_state.df
-    
-    # Get selected time controls from session state
-    selected_time_controls = st.session_state.get('selected_time_controls', df['time_control'].unique().tolist())
-    
-    # Filter the dataframe
-    if selected_time_controls:
-        df_filtered = df[df['time_control'].isin(selected_time_controls)].copy()
-    else:
-        st.warning("⚠️ No time controls selected. Please select at least one time control in the sidebar.")
-        return
-    
-    # Check if filtered data is empty
-    if len(df_filtered) == 0:
-        st.warning("⚠️ No games match the selected filters. Please adjust your filters in the sidebar.")
-        return
 
-    analyzer = ChessAnalyzer(df_filtered)
+
+    df = st.session_state.df
+    analyzer = ChessAnalyzer(df)
     stats = analyzer.get_overall_stats()
 
     st.header("Performance Analysis")
@@ -802,7 +784,7 @@ def main():
     )
 
     with tabs[0]:
-        render_performance_overview(df_filtered, analyzer, st.session_state.username)
+        render_performance_overview(df, analyzer, st.session_state.username)
     with tabs[1]:
         render_rating_trend(analyzer)
     with tabs[2]:
@@ -812,9 +794,12 @@ def main():
     with tabs[4]:
         render_opponent_strength(analyzer)
     with tabs[5]:
-        render_win_probability(df_filtered, analyzer, stats)
+        render_win_probability(df, analyzer, stats)
     with tabs[6]:
         render_game_length_analysis(analyzer)
+    
+
+
 # ------------------------------------------------------------------------------
 # Entry point
 # ------------------------------------------------------------------------------
