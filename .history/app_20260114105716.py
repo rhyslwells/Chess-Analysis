@@ -147,28 +147,6 @@ def render_sidebar():
                 st.warning("No time controls selected. Please select at least one.")
 
 
-def render_analysis_navigation():
-    """
-    Sidebar navigation for selecting analysis views.
-    Only shown once data is loaded.
-    """
-    st.subheader("Analysis Views")
-
-    return st.radio(
-        label="Select analysis view",
-        options=[
-            "Performance Overview",
-            "Rating Trend",
-            "Results Over Time",
-            "Opening Performance",
-            "Opponent Strength",
-            "Win Probability",
-            "Game Length",
-        ],
-        label_visibility="collapsed",
-    )
-
-
 # ==============================================================================
 # Tab renderers
 # ==============================================================================
@@ -753,23 +731,45 @@ def render_game_length_analysis(analyzer):
 # Main application flow
 # ==============================================================================
 
+def render_analysis_navigation():
+    """
+    Sidebar navigation for selecting analysis views.
+    Only shown once data is loaded.
+    """
+    st.subheader("Analysis Views")
+
+    return st.radio(
+        label="Select analysis view",
+        options=[
+            "Performance Overview",
+            "Rating Trend",
+            "Results Over Time",
+            "Opening Performance",
+            "Opponent Strength",
+            "Win Probability",
+            "Game Length",
+        ],
+        label_visibility="collapsed",
+    )
+
+# ==============================================================================
 def main():
     # region Header
     st.title("Chess Game Analysis Dashboard")
     st.caption("Fetch games using the sidebar, then explore the analysis views.")
-    
+    # endregion
 
     # region Sidebar
     analysis_view = None
     with st.sidebar:
-        # 1️ Analysis navigation at the top (only after data is loaded)
+        # 1. Analysis navigation at the top (only shown after data is loaded)
         if st.session_state.data_loaded:
             analysis_view = render_analysis_navigation()
             st.markdown("---")
 
-        # 2️ Data management and filters below
+        # 2. Data management and filters
         render_sidebar()
-    
+    # endregion
 
     # region Landing Page
     if not st.session_state.data_loaded:
@@ -800,7 +800,7 @@ def main():
                 """
             )
         return
-    
+    # endregion
 
     # region Data Filtering
     df = st.session_state.df
@@ -822,29 +822,36 @@ def main():
             "⚠️ No games match the selected filters. Please adjust your filters in the sidebar."
         )
         return
+    # endregion
 
     # region Analysis Setup
     analyzer = ChessAnalyzer(df_filtered)
     stats = analyzer.get_overall_stats()
     st.header("Performance Analysis")
-    
+    # endregion
 
     # region Analysis Rendering
     if analysis_view == "Performance Overview":
         render_performance_overview(df_filtered, analyzer, st.session_state.username)
+
     elif analysis_view == "Rating Trend":
         render_rating_trend(analyzer)
+
     elif analysis_view == "Results Over Time":
         render_results_over_time(analyzer)
+
     elif analysis_view == "Opening Performance":
         render_opening_performance(analyzer)
+
     elif analysis_view == "Opponent Strength":
         render_opponent_strength(analyzer)
+
     elif analysis_view == "Win Probability":
         render_win_probability(df_filtered, analyzer, stats)
+
     elif analysis_view == "Game Length":
         render_game_length_analysis(analyzer)
-    return
+    # endregion
 
 # ------------------------------------------------------------------------------
 # Entry point

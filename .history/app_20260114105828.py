@@ -147,28 +147,6 @@ def render_sidebar():
                 st.warning("No time controls selected. Please select at least one.")
 
 
-def render_analysis_navigation():
-    """
-    Sidebar navigation for selecting analysis views.
-    Only shown once data is loaded.
-    """
-    st.subheader("Analysis Views")
-
-    return st.radio(
-        label="Select analysis view",
-        options=[
-            "Performance Overview",
-            "Rating Trend",
-            "Results Over Time",
-            "Opening Performance",
-            "Opponent Strength",
-            "Win Probability",
-            "Game Length",
-        ],
-        label_visibility="collapsed",
-    )
-
-
 # ==============================================================================
 # Tab renderers
 # ==============================================================================
@@ -752,6 +730,29 @@ def render_game_length_analysis(analyzer):
 # ==============================================================================
 # Main application flow
 # ==============================================================================
+
+
+def render_analysis_navigation():
+    """
+    Sidebar navigation for selecting analysis views.
+    Only shown once data is loaded.
+    """
+    st.subheader("Analysis Views")
+
+    return st.radio(
+        label="Select analysis view",
+        options=[
+            "Performance Overview",
+            "Rating Trend",
+            "Results Over Time",
+            "Opening Performance",
+            "Opponent Strength",
+            "Win Probability",
+            "Game Length",
+        ],
+        label_visibility="collapsed",
+    )
+
 
 def main():
     # region Header

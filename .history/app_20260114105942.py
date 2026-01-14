@@ -753,6 +753,7 @@ def render_game_length_analysis(analyzer):
 # Main application flow
 # ==============================================================================
 
+
 def main():
     # region Header
     st.title("Chess Game Analysis Dashboard")
@@ -845,6 +846,7 @@ def main():
     elif analysis_view == "Game Length":
         render_game_length_analysis(analyzer)
     return
+
 
 # ------------------------------------------------------------------------------
 # Entry point
