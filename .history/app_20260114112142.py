@@ -752,6 +752,11 @@ def render_game_length_analysis(analyzer):
 # Main application flow
 # ==============================================================================
 
+
+# ==============================================================================
+# Main application flow
+# ==============================================================================
+
 def main():
     # region Header
     st.title("Chess Game Analysis Dashboard")
@@ -761,65 +766,29 @@ def main():
     # region Sidebar
     analysis_view = None
     with st.sidebar:
-        # 1️⃣ Analysis navigation at the top (only after data is loaded)
         if st.session_state.data_loaded:
             analysis_view = render_analysis_navigation()
             st.markdown("---")
-
-        # 2️⃣ Data management and filters below
         render_sidebar()
     # endregion
 
     # region Landing Page
     if not st.session_state.data_loaded:
-        st.markdown(
-            """
-            ### About this dashboard
-
-            This application is a lightweight, on-demand analysis tool for Chess.com players.
-            It allows you to fetch your historical games, explore performance trends, and view
-            predictions based on your own data.
-
-            **How it works**
-            1. Enter a Chess.com username and date range in the sidebar  
-            2. Fetch games on demand  
-            3. Explore performance metrics, trends, and win-probability estimates
-            """
-        )
-
-        with st.expander("Further information about this dashboard", expanded=False):
-            st.markdown(
-                """
-                **Key characteristics**
-                - No live data streams or background updates
-                - Analysis runs only when you fetch data
-
-                **Game access**
-                - Individual games remain accessible via direct links to Chess.com.
-                """
-            )
+        st.markdown("### About this dashboard…")
         return
     # endregion
 
     # region Data Filtering
     df = st.session_state.df
     selected_time_controls = st.session_state.get(
-        "selected_time_controls",
-        df["time_control"].unique().tolist(),
+        "selected_time_controls", df["time_control"].unique().tolist()
     )
-
     if not selected_time_controls:
-        st.warning(
-            "⚠️ No time controls selected. Please select at least one time control in the sidebar."
-        )
+        st.warning("⚠️ No time controls selected.")
         return
-
     df_filtered = df[df["time_control"].isin(selected_time_controls)].copy()
-
     if df_filtered.empty:
-        st.warning(
-            "⚠️ No games match the selected filters. Please adjust your filters in the sidebar."
-        )
+        st.warning("⚠️ No games match the selected filters.")
         return
     # endregion
 

@@ -174,10 +174,8 @@ class ChessAnalyzer:
             if len(subset) > 0:
                 wins = (subset['result'] == 1).sum()
                 total = len(subset)
-                win_rate = (wins / total * 100) #Done: round to 0 decimal
-                avg_score = subset['result'].mean() #done: round to 0 decimal
-                win_rate = round(win_rate, 2)
-                avg_score = round(avg_score, 2)
+                win_rate = (wins / total * 100) #TODO: round to 0 decimal
+                avg_score = subset['result'].mean() #TODO: round to 0 decimal
                 
                 color_stats.append({
                     'color': color.capitalize(),
@@ -196,7 +194,7 @@ class ChessAnalyzer:
         }).reset_index()
         
         tc_groups.columns = ['time_control', 'games', 'wins', 'win_rate']
-        tc_groups['win_rate'] = round(tc_groups['win_rate'] * 100, 2)
+        tc_groups['win_rate'] = tc_groups['win_rate'] * 100
         tc_groups = tc_groups.sort_values('games', ascending=False)
         
         return tc_groups

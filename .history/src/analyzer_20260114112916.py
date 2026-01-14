@@ -196,7 +196,7 @@ class ChessAnalyzer:
         }).reset_index()
         
         tc_groups.columns = ['time_control', 'games', 'wins', 'win_rate']
-        tc_groups['win_rate'] = round(tc_groups['win_rate'] * 100, 2)
+        tc_groups['win_rate'] = tc_groups['win_rate'] * 100
         tc_groups = tc_groups.sort_values('games', ascending=False)
         
         return tc_groups
