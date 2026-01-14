@@ -41,7 +41,6 @@ class ChessDataFetcher:
             print(f"Error fetching games: {e}")
             return []
 
-
     def fetch_multiple_months(self, username, start_date, end_date):
         """Fetch games across multiple months."""
         all_games = []
@@ -62,42 +61,12 @@ class ChessDataFetcher:
 
         return all_games
 
-    def get_current_elo(self, username: str, time_control: str = "blitz") -> int | None:
+    def get_current_elo(self, username: str) -> int:
         """
-        Fetch current Elo for a given username and time control.
-        Returns None if not available.
+        Fetch current standard blitz or rapid Elo for a given username.
         """
-        url = f"https://api.chess.com/pub/player/{username}/stats"
-        headers = {
-            "User-Agent": "Chess Analysis Dashboard (Python/requests)"
-        }
-        try:
-            response = requests.get(url, headers=headers, timeout=10)
-            response.raise_for_status()
-            stats = response.json()
-
-            control_map = {
-                "bullet": "chess_bullet",
-                "blitz": "chess_blitz",
-                "rapid": "chess_rapid",
-                "daily": "chess_daily"
-            }
-
-            key = control_map.get(time_control.strip().lower())
-            if not key:
-                return None
-
-            last_rating_info = stats.get(key, {}).get("last")
-            if not last_rating_info:
-                return None
-
-            rating = last_rating_info.get("rating")
-            return rating
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching Elo for {username}: {e}")
-            return None
-
+        profile = self.fetch_profile(username)  # assume this fetches Chess.com profile JSON
+        return profile.get("stats", {}).get("chess_blitz", {}).get("last", {}).get("rating", None)
 
 
     # ----------------------------

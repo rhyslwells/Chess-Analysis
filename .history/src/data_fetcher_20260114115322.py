@@ -65,14 +65,14 @@ class ChessDataFetcher:
     def get_current_elo(self, username: str, time_control: str = "blitz") -> int | None:
         """
         Fetch current Elo for a given username and time control.
+        time_control can be 'bullet', 'blitz', 'rapid', or 'daily'.
         Returns None if not available.
         """
+        import requests
+
         url = f"https://api.chess.com/pub/player/{username}/stats"
-        headers = {
-            "User-Agent": "Chess Analysis Dashboard (Python/requests)"
-        }
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, timeout=10)
             response.raise_for_status()
             stats = response.json()
 
@@ -83,22 +83,14 @@ class ChessDataFetcher:
                 "daily": "chess_daily"
             }
 
-            key = control_map.get(time_control.strip().lower())
-            if not key:
+            key = control_map.get(time_control.lower())
+            if key is None:
                 return None
 
-            last_rating_info = stats.get(key, {}).get("last")
-            if not last_rating_info:
-                return None
-
-            rating = last_rating_info.get("rating")
+            rating = stats.get(key, {}).get("last", {}).get("rating")
             return rating
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching Elo for {username}: {e}")
+        except requests.exceptions.RequestException:
             return None
-
-
 
     # ----------------------------
     # PGN parsing

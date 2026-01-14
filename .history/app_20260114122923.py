@@ -751,16 +751,8 @@ def render_game_length_analysis(analyzer):
     st.plotly_chart(fig_scatter, use_container_width=True)
 
 def render_competitor_analysis(analyzer):
-    """
-    Competitor analysis: compare current Elo and predicted win probabilities 
-    against selected competitors.
-    """
     st.subheader("Competitor Analysis")
-    st.caption(
-        "This tab displays current Elo ratings for selected competitors and "
-        "predicted probabilities of winning as White or Black based on your "
-        "historical performance."
-    )
+
     suggested_users = ["Hikaru", "GothamChess", "MagnusCarlsen"]
 
     # Input section in columns

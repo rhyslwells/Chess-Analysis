@@ -751,111 +751,99 @@ def render_game_length_analysis(analyzer):
     st.plotly_chart(fig_scatter, use_container_width=True)
 
 def render_competitor_analysis(analyzer):
-    """
-    Competitor analysis: compare current Elo and predicted win probabilities 
-    against selected competitors.
-    """
     st.subheader("Competitor Analysis")
-    st.caption(
-        "This tab displays current Elo ratings for selected competitors and "
-        "predicted probabilities of winning as White or Black based on your "
-        "historical performance."
-    )
+
     suggested_users = ["Hikaru", "GothamChess", "MagnusCarlsen"]
 
-    # Input section in columns
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        selected_suggested = st.multiselect(
-            "Select competitor usernames",
-            options=suggested_users,
-            default=suggested_users[:3],
-            help="Select up to three usernames."
-        )
-    with col2:
-        custom_user = st.text_input(
-            "Add another username",
-            placeholder="Enter a Chess.com username"
-        )
-
-    # Combine selections
-    competitors = selected_suggested.copy()
-    if custom_user.strip():
-        competitors.append(custom_user.strip())
-
+    competitors = st.multiselect(
+        "Select competitor usernames",
+        options=suggested_users,
+        default=suggested_users[:3],
+        help="Select up to three usernames."
+    )
     if not competitors:
         st.info("Select at least one competitor.")
         return
 
+    # Pick game type
     time_control = st.selectbox(
         "Select game type",
-        ["blitz", "rapid", "daily", "bullet"]
+        ["bullet", "blitz", "rapid", "daily"]
     )
 
+    # ------------------------------------------------------------------
+    # Fetch current Elo for competitors
+    # ------------------------------------------------------------------
     fetcher = ChessDataFetcher()
-    competitor_elos = {u: fetcher.get_current_elo(u, time_control) for u in competitors}
+    competitor_elos = {user: fetcher.get_current_elo(user, time_control) for user in competitors}
 
-    # --- Tabs for Elo vs Predictions ---
-    tab_elo, tab_pred = st.tabs(["Current Elo Ratings", "Predicted Win Probabilities"])
+    st.markdown("### Current Elo Ratings")
+    elo_df = pd.DataFrame([
+        {"Username": u, "Elo": e if e is not None else "N/A"} 
+        for u, e in competitor_elos.items()
+    ])
+    st.dataframe(elo_df, use_container_width=True, hide_index=True)
 
-    with tab_elo:
-        st.markdown("### Elo Ratings")
-        cols = st.columns(len(competitors))
-        for i, (u, e) in enumerate(competitor_elos.items()):
-            cols[i].metric(label=u, value=e if e is not None else "N/A")
-
-    # Train predictor
+    # ------------------------------------------------------------------
+    # Train predictor on user's historical games
+    # ------------------------------------------------------------------
     predictor = ChessPredictor()
     X, y = analyzer.prepare_ml_features()
     predictor.train(X, y)
+
     user_elo = analyzer.get_overall_stats()["current_elo"]
+    st.markdown("### Predicted Win Probabilities (White / Black)")
 
-    with tab_pred:
-        st.markdown("### Predicted Win Probabilities (White / Black)")
-
-        def get_prob_for_elo(curve_df, comp_elo):
-            if curve_df.empty:
-                return np.nan
-            idx = (np.abs(curve_df["opponent_rating"] - comp_elo)).argmin()
-            return curve_df.iloc[idx]["win_probability"]
-
-        table_data = []
-        for comp_user, comp_elo in competitor_elos.items():
-            if comp_elo is None:
-                table_data.append({
-                    "Competitor": comp_user,
-                    "Elo": "N/A",
-                    "White Win %": np.nan,
-                    "Black Win %": np.nan
-                })
-                continue
-
-            curve_white = predictor.get_win_probability_curve(user_elo, is_white=True)
-            curve_black = predictor.get_win_probability_curve(user_elo, is_white=False)
-
+    # Build a table of predictions
+    table_data = []
+    for comp_user, comp_elo in competitor_elos.items():
+        if comp_elo is None:
             table_data.append({
                 "Competitor": comp_user,
-                "Elo": comp_elo,
-                "White Win %": get_prob_for_elo(curve_white, comp_elo),
-                "Black Win %": get_prob_for_elo(curve_black, comp_elo)
+                "Elo": "N/A",
+                "White Win %": None,
+                "Black Win %": None
             })
+            continue
 
-        prob_df = pd.DataFrame(table_data)
-        prob_df["White Win %"] = prob_df["White Win %"].astype(float)
-        prob_df["Black Win %"] = prob_df["Black Win %"].astype(float)
+        curve_white = predictor.get_win_probability_curve(user_elo, is_white=True)
+        curve_black = predictor.get_win_probability_curve(user_elo, is_white=False)
 
-        # Style table: gradient coloring
-        st.dataframe(
-            prob_df.style.background_gradient(
-                subset=["White Win %", "Black Win %"], 
-                cmap="RdYlGn"
-            ).format({
-                "White Win %": "{:.0%}",
-                "Black Win %": "{:.0%}"
-            }),
-            use_container_width=True,
-            hide_index=True
-        )
+        prob_white = curve_white.loc[curve_white["opponent_rating"] == comp_elo, "win_probability"].values
+        prob_black = curve_black.loc[curve_black["opponent_rating"] == comp_elo, "win_probability"].values
+
+        table_data.append({
+            "Competitor": comp_user,
+            "Elo": comp_elo,
+            "White Win %": prob_white[0] if len(prob_white) > 0 else None,
+            "Black Win %": prob_black[0] if len(prob_black) > 0 else None,
+        })
+
+    prob_df = pd.DataFrame(table_data)
+
+    # Replace None with np.nan for styling
+    prob_df["White Win %"] = prob_df["White Win %"].astype(float)
+    prob_df["Black Win %"] = prob_df["Black Win %"].astype(float)
+
+    st.dataframe(
+        prob_df.style.bar(subset=["White Win %", "Black Win %"], color="#85C1E9").format({
+            "White Win %": "{:.0%}",
+            "Black Win %": "{:.0%}"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
+
+
+    # Display numeric bars and format as percentages
+    st.dataframe(
+        prob_df.style.bar(subset=["White Win %", "Black Win %"], color="#85C1E9").format({
+            "White Win %": "{:.0%}",
+            "Black Win %": "{:.0%}"
+        }),
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 # ==============================================================================
@@ -936,7 +924,7 @@ def main():
     # region Analysis Setup
     analyzer = ChessAnalyzer(df_filtered)
     stats = analyzer.get_overall_stats()
-    st.header("Analysis View")
+    st.header("Performance Analysis")
     # endregion
 
     # region Analysis Rendering

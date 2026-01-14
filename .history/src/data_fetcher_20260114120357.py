@@ -62,17 +62,17 @@ class ChessDataFetcher:
 
         return all_games
 
+
     def get_current_elo(self, username: str, time_control: str = "blitz") -> int | None:
         """
         Fetch current Elo for a given username and time control.
         Returns None if not available.
         """
+        import requests
+
         url = f"https://api.chess.com/pub/player/{username}/stats"
-        headers = {
-            "User-Agent": "Chess Analysis Dashboard (Python/requests)"
-        }
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, timeout=10)
             response.raise_for_status()
             stats = response.json()
 
@@ -83,21 +83,25 @@ class ChessDataFetcher:
                 "daily": "chess_daily"
             }
 
-            key = control_map.get(time_control.strip().lower())
+            key = control_map.get(time_control.lower())
             if not key:
                 return None
 
-            last_rating_info = stats.get(key, {}).get("last")
+            # Debug: check what keys exist
+            if key not in stats:
+                print(f"{username} has no stats for {time_control} ({key})")
+                return None
+
+            last_rating_info = stats[key].get("last")
             if not last_rating_info:
+                print(f"{username} has no last rating for {time_control}")
                 return None
 
             rating = last_rating_info.get("rating")
             return rating
-
         except requests.exceptions.RequestException as e:
             print(f"Error fetching Elo for {username}: {e}")
             return None
-
 
 
     # ----------------------------

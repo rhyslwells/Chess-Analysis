@@ -68,11 +68,8 @@ class ChessDataFetcher:
         Returns None if not available.
         """
         url = f"https://api.chess.com/pub/player/{username}/stats"
-        headers = {
-            "User-Agent": "Chess Analysis Dashboard (Python/requests)"
-        }
         try:
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, timeout=10)
             response.raise_for_status()
             stats = response.json()
 
@@ -87,8 +84,14 @@ class ChessDataFetcher:
             if not key:
                 return None
 
-            last_rating_info = stats.get(key, {}).get("last")
+            # Debug: ensure key exists
+            if key not in stats:
+                print(f"No stats for {time_control} ({key})")
+                return None
+
+            last_rating_info = stats[key].get("last")
             if not last_rating_info:
+                print(f"No last rating info for {time_control}")
                 return None
 
             rating = last_rating_info.get("rating")
@@ -97,7 +100,6 @@ class ChessDataFetcher:
         except requests.exceptions.RequestException as e:
             print(f"Error fetching Elo for {username}: {e}")
             return None
-
 
 
     # ----------------------------
