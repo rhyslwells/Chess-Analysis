@@ -731,10 +731,9 @@ def render_game_length_analysis(analyzer):
 # Main application flow
 # ==============================================================================
 # ==============================================================================
-# ==============================================================================
 def main():
     st.title("Chess Game Analysis Dashboard")
-    st.caption("Fetch games using the sidebar, then explore the analysis views.")
+    st.caption("Fetch games using the sidebar, then explore the analysis tabs.")
 
     render_sidebar()
 
@@ -797,13 +796,10 @@ def main():
     st.header("Performance Analysis")
 
     # ------------------------------------------------------------------
-    # Sidebar navigation (replaces tabs)
+    # Section selector (replaces tabs)
     # ------------------------------------------------------------------
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Analysis Views")
-    analysis_view = st.sidebar.radio(
-        label="Select Analysis View",
-        options=
+    section = st.selectbox(
+        "Select analysis view",
         [
             "Performance Overview",
             "Rating Trend",
@@ -818,27 +814,27 @@ def main():
     # ------------------------------------------------------------------
     # Conditional rendering
     # ------------------------------------------------------------------
-    if analysis_view == "Performance Overview":
+    if section == "Performance Overview":
         render_performance_overview(
             df_filtered, analyzer, st.session_state.username
         )
 
-    elif analysis_view == "Rating Trend":
+    elif section == "Rating Trend":
         render_rating_trend(analyzer)
 
-    elif analysis_view == "Results Over Time":
+    elif section == "Results Over Time":
         render_results_over_time(analyzer)
 
-    elif analysis_view == "Opening Performance":
+    elif section == "Opening Performance":
         render_opening_performance(analyzer)
 
-    elif analysis_view == "Opponent Strength":
+    elif section == "Opponent Strength":
         render_opponent_strength(analyzer)
 
-    elif analysis_view == "Win Probability":
+    elif section == "Win Probability":
         render_win_probability(df_filtered, analyzer, stats)
 
-    elif analysis_view == "Game Length":
+    elif section == "Game Length":
         render_game_length_analysis(analyzer)
 
 # ------------------------------------------------------------------------------

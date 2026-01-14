@@ -799,11 +799,8 @@ def main():
     # ------------------------------------------------------------------
     # Sidebar navigation (replaces tabs)
     # ------------------------------------------------------------------
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Analysis Views")
     analysis_view = st.sidebar.radio(
-        label="Select Analysis View",
-        options=
+        "Analysis Views",
         [
             "Performance Overview",
             "Rating Trend",

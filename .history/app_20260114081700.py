@@ -730,11 +730,9 @@ def render_game_length_analysis(analyzer):
 # ==============================================================================
 # Main application flow
 # ==============================================================================
-# ==============================================================================
-# ==============================================================================
 def main():
     st.title("Chess Game Analysis Dashboard")
-    st.caption("Fetch games using the sidebar, then explore the analysis views.")
+    st.caption("Fetch games using the sidebar, then explore the analysis tabs.")
 
     render_sidebar()
 
@@ -771,75 +769,62 @@ def main():
     # Apply time control filter
     # ------------------------------------------------------------------
     df = st.session_state.df
-
-    selected_time_controls = st.session_state.get(
-        "selected_time_controls",
-        df["time_control"].unique().tolist(),
-    )
-
+    
+    # Get selected time controls from session state
+    selected_time_controls = st.session_state.get('selected_time_controls', df['time_control'].unique().tolist())
+    
+    # Filter the dataframe
     if selected_time_controls:
-        df_filtered = df[df["time_control"].isin(selected_time_controls)].copy()
+        df_filtered = df[df['time_control'].isin(selected_time_controls)].copy()
     else:
-        st.warning(
-            "⚠️ No time controls selected. Please select at least one time control in the sidebar."
-        )
+        st.warning("⚠️ No time controls selected. Please select at least one time control in the sidebar.")
         return
-
+    
+    # Check if filtered data is empty
     if len(df_filtered) == 0:
-        st.warning(
-            "⚠️ No games match the selected filters. Please adjust your filters in the sidebar."
-        )
+        st.warning("⚠️ No games match the selected filters. Please adjust your filters in the sidebar.")
         return
 
     analyzer = ChessAnalyzer(df_filtered)
     stats = analyzer.get_overall_stats()
+    st.subheader("Core Performance")
 
-    st.header("Performance Analysis")
-
-    # ------------------------------------------------------------------
-    # Sidebar navigation (replaces tabs)
-    # ------------------------------------------------------------------
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("Analysis Views")
-    analysis_view = st.sidebar.radio(
-        label="Select Analysis View",
-        options=
+    core_tabs = st.tabs(
         [
             "Performance Overview",
             "Rating Trend",
             "Results Over Time",
             "Opening Performance",
+        ]
+    )
+
+    with core_tabs[0]:
+        render_performance_overview(df_filtered, analyzer, st.session_state.username)
+    with core_tabs[1]:
+        render_rating_trend(analyzer)
+    with core_tabs[2]:
+        render_results_over_time(analyzer)
+    with core_tabs[3]:
+        render_opening_performance(analyzer)
+
+
+    st.subheader("Advanced Analysis")
+
+    advanced_tabs = st.tabs(
+        [
             "Opponent Strength",
             "Win Probability",
             "Game Length",
-        ],
+        ]
     )
 
-    # ------------------------------------------------------------------
-    # Conditional rendering
-    # ------------------------------------------------------------------
-    if analysis_view == "Performance Overview":
-        render_performance_overview(
-            df_filtered, analyzer, st.session_state.username
-        )
-
-    elif analysis_view == "Rating Trend":
-        render_rating_trend(analyzer)
-
-    elif analysis_view == "Results Over Time":
-        render_results_over_time(analyzer)
-
-    elif analysis_view == "Opening Performance":
-        render_opening_performance(analyzer)
-
-    elif analysis_view == "Opponent Strength":
+    with advanced_tabs[0]:
         render_opponent_strength(analyzer)
-
-    elif analysis_view == "Win Probability":
+    with advanced_tabs[1]:
         render_win_probability(df_filtered, analyzer, stats)
-
-    elif analysis_view == "Game Length":
+    with advanced_tabs[2]:
         render_game_length_analysis(analyzer)
+
 
 # ------------------------------------------------------------------------------
 # Entry point
