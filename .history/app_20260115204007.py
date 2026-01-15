@@ -50,7 +50,6 @@ if 'last_fetch_time' not in st.session_state:
 # ==============================================================================
 # Sidebar: data fetching (kept intentionally simple)
 # ==============================================================================
-
 def render_sidebar():
     """
     Sidebar is responsible only for fetching fresh data.
@@ -68,19 +67,24 @@ def render_sidebar():
 
         st.subheader("Fetch Games")
         
-        # Simplified: Just Recent Months or Custom Range
+        # NEW: Add option to fetch all available games
         fetch_mode = st.radio(
             "Fetch Mode",
-            ["Recent Months", "Custom Range"],
-            help="Choose how to fetch your game data"
+            ["All Available Games", "Recent Months Only", "Custom Range"],
+            help="'All Available Games' automatically fetches everything from Chess.com"
         )
 
         # Configure based on fetch mode
-        if fetch_mode == "Recent Months":
+        if fetch_mode == "All Available Games":
+            st.info("Will fetch all games available on Chess.com")
+            use_archive_discovery = True
+            limit_months = None
+            
+        elif fetch_mode == "Recent Months Only":
             months_back = st.selectbox(
                 "Number of Months",
-                [1, 3, 6, 12],
-                index=1,  # Default to 3 months (index 1)
+                [1, 3, 6, 12, 24],
+                index=2,  # Default to 6 months
                 help="Fetch only the most recent N months"
             )
             use_archive_discovery = True
@@ -198,6 +202,7 @@ def render_sidebar():
                 st.info(f"Analyzing {filtered_count} of {len(df)} games")
             else:
                 st.warning("No time controls selected. Please select at least one.")
+
 
 def render_analysis_navigation():
     """
