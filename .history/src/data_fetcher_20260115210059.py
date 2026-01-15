@@ -19,8 +19,7 @@ class ChessDataFetcher:
     }
 
     def __init__(self):
-        self.invalid_duration_count = 0
-        self.duration_validation_log = []
+        pass
 
 
     def get_available_archives(self, username):
@@ -184,51 +183,6 @@ class ChessDataFetcher:
             return None
 
 
-    def _validate_game_duration(self, duration_seconds, game_url='', opponent=''):
-        """
-        Validate that game duration is non-negative and within reasonable bounds.
-        
-        Args:
-            duration_seconds: Calculated game duration in seconds
-            game_url: URL of the game (for logging)
-            opponent: Opponent username (for logging)
-            
-        Returns:
-            Validated duration in seconds, or None if invalid
-        """
-        if duration_seconds is None:
-            return None
-            
-        # Check for negative duration
-        if duration_seconds < 0:
-            self.invalid_duration_count += 1
-            log_entry = {
-                'reason': 'negative_duration',
-                'duration': duration_seconds,
-                'game_url': game_url,
-                'opponent': opponent
-            }
-            self.duration_validation_log.append(log_entry)
-            print(f"⚠️  Invalid game duration: {duration_seconds}s (negative) - Game URL: {game_url}")
-            return None
-        
-        # Check for unreasonably long games (e.g., > 24 hours = 86400 seconds)
-        # This catches timezone issues or date calculation errors
-        MAX_REASONABLE_DURATION = 86400  # 24 hours
-        if duration_seconds > MAX_REASONABLE_DURATION:
-            self.invalid_duration_count += 1
-            log_entry = {
-                'reason': 'unreasonably_long',
-                'duration': duration_seconds,
-                'game_url': game_url,
-                'opponent': opponent
-            }
-            self.duration_validation_log.append(log_entry)
-            print(f"⚠️  Invalid game duration: {duration_seconds}s (>{MAX_REASONABLE_DURATION}s) - Game URL: {game_url}")
-            return None
-            
-        return duration_seconds
-
 
     # ----------------------------
     # PGN parsing
@@ -292,55 +246,28 @@ class ChessDataFetcher:
                         .title()
                     )
 
-                # --- Time calculation with improved validation ---
+                # --- Time calculation ---
                 start_time_str = headers.get('StartTime')   # HH:MM:SS
                 end_date_str = headers.get('EndDate')       # YYYY.MM.DD
                 end_time_str = headers.get('EndTime')       # HH:MM:SS (optional)
-                start_date_str = headers.get('StartDate')   # YYYY.MM.DD (if available)
 
                 if start_time_str and end_date_str:
-                    try:
-                        # Use StartDate if available, otherwise assume same as EndDate
-                        if start_date_str:
-                            start_dt = datetime.strptime(
-                                f"{start_date_str} {start_time_str}",
-                                "%Y.%m.%d %H:%M:%S"
-                            )
-                        else:
-                            # Assume game started on same date as it ended
-                            start_dt = datetime.strptime(
-                                f"{end_date_str} {start_time_str}",
-                                "%Y.%m.%d %H:%M:%S"
-                            )
+                    start_dt = datetime.strptime(
+                        f"{end_date_str} {start_time_str}",
+                        "%Y.%m.%d %H:%M:%S"
+                    )
 
-                        if end_time_str:
-                            end_dt = datetime.strptime(
-                                f"{end_date_str} {end_time_str}",
-                                "%Y.%m.%d %H:%M:%S"
-                            )
-                        else:
-                            # Fallback to API end_time
-                            end_dt = datetime.fromtimestamp(game_data['end_time'])
-
-                        # Calculate duration
-                        raw_duration = int((end_dt - start_dt).total_seconds())
-                        
-                        # Handle midnight crossing: if duration is negative but small,
-                        # the game likely crossed midnight
-                        if raw_duration < 0 and raw_duration > -3600:
-                            # Add 24 hours worth of seconds
-                            raw_duration += 86400
-                        
-                        # Validate the duration
-                        game_duration_seconds = self._validate_game_duration(
-                            raw_duration,
-                            game_url=game_data.get('url', ''),
-                            opponent=opponent_username
+                    if end_time_str:
+                        end_dt = datetime.strptime(
+                            f"{end_date_str} {end_time_str}",
+                            "%Y.%m.%d %H:%M:%S"
                         )
-                        
-                    except ValueError as e:
-                        print(f"Date parsing error for game vs {opponent_username}: {e}")
-                        game_duration_seconds = None
+                    else:
+                        end_dt = datetime.fromtimestamp(game_data['end_time'])
+
+                    game_duration_seconds = int(
+                        (end_dt - start_dt).total_seconds()
+                    )
 
         except Exception as e:
             print(f"PGN parsing error: {e}")
@@ -473,10 +400,6 @@ class ChessDataFetcher:
         Returns:
             DataFrame of processed games
         """
-        # Reset validation counters
-        self.invalid_duration_count = 0
-        self.duration_validation_log = []
-        
         if mode == 'pgn':
             # games should be a path to PGN file
             df = self.pgn_to_dataframe(games, username)
@@ -489,48 +412,5 @@ class ChessDataFetcher:
         df = df.sort_values('timestamp', ascending=False)
         
         # Remove duplicates based on timestamp and opponent
-        initial_count = len(df)
         df = df.drop_duplicates(subset=['timestamp', 'opponent'], keep='first')
-        duplicates_removed = initial_count - len(df)
-        
-        # Filter out games with invalid (None) durations
-        if 'game_duration_seconds' in df.columns:
-            games_before_filter = len(df)
-            df = df[df['game_duration_seconds'].notna()]
-            invalid_games_removed = games_before_filter - len(df)
-            
-            # Log validation summary
-            if self.invalid_duration_count > 0 or invalid_games_removed > 0:
-                print(f"\n{'='*60}")
-                print(f"GAME DURATION VALIDATION SUMMARY")
-                print(f"{'='*60}")
-                print(f"Games with invalid durations detected: {self.invalid_duration_count}")
-                print(f"Games removed from dataset: {invalid_games_removed}")
-                print(f"Duplicates removed: {duplicates_removed}")
-                print(f"Final valid games: {len(df)}")
-                
-                if self.duration_validation_log:
-                    print(f"\nInvalid duration breakdown:")
-                    negative_count = sum(1 for log in self.duration_validation_log if log['reason'] == 'negative_duration')
-                    long_count = sum(1 for log in self.duration_validation_log if log['reason'] == 'unreasonably_long')
-                    if negative_count > 0:
-                        print(f"  - Negative durations: {negative_count}")
-                    if long_count > 0:
-                        print(f"  - Unreasonably long (>24h): {long_count}")
-                print(f"{'='*60}\n")
-        
         return df
-    
-    def get_validation_report(self):
-        """
-        Get a detailed report of all validation issues encountered.
-        
-        Returns:
-            Dictionary containing validation statistics and log entries
-        """
-        return {
-            'total_invalid': self.invalid_duration_count,
-            'validation_log': self.duration_validation_log,
-            'negative_durations': sum(1 for log in self.duration_validation_log if log['reason'] == 'negative_duration'),
-            'unreasonably_long': sum(1 for log in self.duration_validation_log if log['reason'] == 'unreasonably_long')
-        }
