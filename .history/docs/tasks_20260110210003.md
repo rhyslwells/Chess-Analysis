@@ -1,7 +1,0 @@
-## Task 1:
-
-Do not think we need to store this if we temporally store the data in memory.
-
-
-- use mermaid in diagram_level_files.md
-- Turn notebooks into posts

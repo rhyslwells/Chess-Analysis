@@ -9,3 +9,9 @@
 - analysis tabs moved to top of sidebar
 - rounding of winrate to 2 decimal places
 - competitor analys tab addedc
+
+## [1.0.2] - 2026-01-15
+- Negative time possibilities removed, with logging added.
+- Data fetcher now gets up to current date when fetching games.
+- Removed depreciation warnings for sizing width.
+- no longer need to rerun due to sidebar re-rendering

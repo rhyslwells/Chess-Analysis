@@ -44,6 +44,9 @@ if "username" not in st.session_state:
 
 if "selected_time_controls" not in st.session_state:
     st.session_state.selected_time_controls = []
+
+if 'last_fetch_time' not in st.session_state:
+    st.session_state.last_fetch_time = None
 # ==============================================================================
 # Sidebar: data fetching (kept intentionally simple)
 # ==============================================================================
@@ -63,15 +66,27 @@ def render_sidebar():
             help="Example: RhysLWells, Hikaru, GothamChess",
         )
 
-
         st.subheader("Fetch Games")
-        date_option = st.radio(
-            "Time Period",
-            ["Last Month", "Last 3 Months", "Last 6 Months", "Custom Range"],
+        
+        # Simplified: Just Recent Months or Custom Range
+        fetch_mode = st.radio(
+            "Fetch Mode",
+            ["Recent Months", "Custom Range"],
+            help="Choose how to fetch your game data"
         )
 
-        # Resolve date range based on selection
-        if date_option == "Custom Range":
+        # Configure based on fetch mode
+        if fetch_mode == "Recent Months":
+            months_back = st.selectbox(
+                "Number of Months",
+                [1, 3, 6, 12],
+                index=1,  # Default to 3 months (index 1)
+                help="Fetch only the most recent N months"
+            )
+            use_archive_discovery = True
+            limit_months = months_back
+            
+        else:  # Custom Range
             c1, c2 = st.columns(2)
             with c1:
                 start_date = st.date_input(
@@ -83,39 +98,79 @@ def render_sidebar():
                     "End Date",
                     value=datetime.now(),
                 )
-        else:
-            end_date = datetime.now()
-            if date_option == "Last Month":
-                start_date = end_date - timedelta(days=30)
-            elif date_option == "Last 3 Months":
-                start_date = end_date - timedelta(days=90)
-            else:
-                start_date = end_date - timedelta(days=180)
+            use_archive_discovery = False
+            limit_months = None
 
         fetch_button = st.button(
             "Fetch Games",
             type="primary",
-            use_container_width=True,
+            width='stretch',
         )
 
         # Fetch and persist data into session state
+        # In render_sidebar(), inside the fetch_button block:
         if fetch_button and username:
             with st.spinner("Fetching games from Chess.com..."):
                 fetcher = ChessDataFetcher()
-                games = fetcher.fetch_multiple_months(
-                    username,
-                    start_date,
-                    end_date,
-                )
+                
+                try:
+                    if use_archive_discovery:
+                        st.info(f"Discovering available archives for {username}...")
+                        games = fetcher.fetch_all_games(
+                            username,
+                            limit_months=limit_months
+                        )
+                    else:
+                        games = fetcher.fetch_multiple_months(
+                            username,
+                            start_date,
+                            end_date,
+                        )
 
-                if games:
-                    df = fetcher.process_and_save(username, games, mode="json")
-                    st.session_state.df = df
-                    st.session_state.data_loaded = True
-                    st.session_state.username = username
-                    st.success(f"Loaded {len(df)} games.")
-                else:
-                    st.error("No games found for this period.")
+                    if games:
+                        df = fetcher.process_and_save(username, games, mode="json")
+                        
+                        # Update session state
+                        st.session_state.df = df
+                        st.session_state.data_loaded = True
+                        st.session_state.username = username
+                        st.session_state.last_fetch_time = datetime.now()
+                        
+                        # Show success with date range info
+                        if not df.empty:
+                            earliest = pd.to_datetime(df['date']).min().strftime('%Y-%m-%d')
+                            latest = pd.to_datetime(df['date']).max().strftime('%Y-%m-%d')
+                            st.success(
+                                f"✅ Loaded {len(df)} games\n\n"
+                                f"📅 Date range: {earliest} to {latest}"
+                            )
+                        else:
+                            st.success(f"Loaded {len(df)} games.")
+                        
+                        # Force immediate rerun to show navigation
+                        st.rerun()
+                        
+                    else:
+                        st.error("No games found for this period.")
+                        
+                except Exception as e:
+                    st.error(f"Error fetching games: {str(e)}")
+                    import traceback
+                    st.error(traceback.format_exc())
+
+        # Show last fetch time if available
+        if hasattr(st.session_state, 'last_fetch_time') and st.session_state.last_fetch_time:
+            last_fetch = st.session_state.last_fetch_time
+            time_ago = datetime.now() - last_fetch
+            
+            if time_ago.days > 0:
+                time_str = f"{time_ago.days} day(s) ago"
+            elif time_ago.seconds > 3600:
+                time_str = f"{time_ago.seconds // 3600} hour(s) ago"
+            else:
+                time_str = f"{time_ago.seconds // 60} minute(s) ago"
+                
+            st.caption(f"Last fetched: {time_str}")
 
         # ------------------------------------------------------------------
         # Game Type Filter (only show if data is loaded)
@@ -200,12 +255,12 @@ def render_performance_overview(df, analyzer, username):
     with c1:
         st.subheader("Performance by Color")
         color_perf = analyzer.get_color_performance()
-        st.dataframe(color_perf, use_container_width=True, hide_index=True)
+        st.dataframe(color_perf, width='stretch', hide_index=True)
 
     with c2:
         st.subheader("Performance by Time Control")
         tc_stats = analyzer.get_time_control_stats()
-        st.dataframe(tc_stats, use_container_width=True, hide_index=True)
+        st.dataframe(tc_stats, width='stretch', hide_index=True)
 
     st.divider()
 
@@ -274,7 +329,7 @@ def render_performance_overview(df, analyzer, username):
             df.to_csv(index=False),
             file_name=f"{username}_games.csv",
             mime="text/csv",
-            use_container_width=True,
+            width='stretch',
         )
 
     with c2:
@@ -291,7 +346,7 @@ Average Rating: {stats['avg_user_rating']:.0f}
             summary,
             file_name=f"{username}_summary.txt",
             mime="text/plain",
-            use_container_width=True,
+            width='stretch',
         )
 
 def render_rating_trend(analyzer):
@@ -331,7 +386,7 @@ def render_rating_trend(analyzer):
         title="Rating Progression Over Time",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 
     # ------------------------------------------------------------------
@@ -409,7 +464,7 @@ def render_results_over_time(analyzer):
         hovermode="x unified"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 def render_opening_performance(analyzer):
     """
@@ -460,7 +515,7 @@ def render_opening_performance(analyzer):
         coloraxis_colorbar=dict(title="Win Rate (%)"),
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     # ------------------------------------------------------------------
     # Example games per opening (as table)
@@ -547,7 +602,7 @@ def render_opponent_strength(analyzer):
 
     fig.update_layout(title="Win Rate by Opponent Strength Category")
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 def render_win_probability(df, analyzer, stats):
     """
@@ -640,7 +695,7 @@ def render_win_probability(df, analyzer, stats):
         fig.add_hline(y=0.5, line_dash="dash")
         fig.update_layout(yaxis_tickformat=".0%")
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width='stretch')
 
 def render_game_length_analysis(analyzer):
     """
@@ -689,7 +744,7 @@ def render_game_length_analysis(analyzer):
             ]
         ],
         hide_index=True,
-        use_container_width=True,
+        width='stretch',
     )
 
     # ------------------------------------------------------------------
@@ -707,7 +762,7 @@ def render_game_length_analysis(analyzer):
     # Round y-axis labels to nearest second
     fig.update_yaxes(tickformat=".0f")
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
     st.divider()
 
@@ -715,7 +770,7 @@ def render_game_length_analysis(analyzer):
     # Scatter: Game length vs opponent rating
     # ------------------------------------------------------------------
     st.subheader("Game Length vs Opponent Rating")
-    st.caption("Explore how game duration varies with opponent strength and outcome")
+    st.caption("Explore how game duration varies with opponent strength and outcome. Remember to filter by time control in the sidebar for more meaningful insights.")
 
     df = analyzer.df.dropna(subset=["game_duration_seconds", "opponent_rating"])
 
@@ -748,7 +803,7 @@ def render_game_length_analysis(analyzer):
     # Round y-axis to nearest second
     fig_scatter.update_yaxes(tickformat=".0f")
 
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    st.plotly_chart(fig_scatter, width='stretch')
 
 def render_competitor_analysis(analyzer):
     """
@@ -853,7 +908,7 @@ def render_competitor_analysis(analyzer):
                 "White Win %": "{:.0%}",
                 "Black Win %": "{:.0%}"
             }),
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
 

@@ -19,7 +19,92 @@ class ChessDataFetcher:
     }
 
     def __init__(self):
-        pass
+        self.invalid_duration_count = 0
+        self.duration_validation_log = []
+
+
+    def get_available_archives(self, username):
+        """
+        Fetch the list of all available monthly game archives for a user.
+        
+        Returns:
+            List of archive URLs (e.g., ['https://api.chess.com/pub/player/username/games/2025/01', ...])
+        """
+        url = f"{self.BASE_URL}/{username}/games/archives"
+        try:
+            print(f"Fetching archive list for {username}...")
+            response = requests.get(url, headers=self.HEADERS, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            archives = data.get('archives', [])
+            print(f"Found {len(archives)} available monthly archives")
+            if archives:
+                print(f"Earliest archive: {archives[0]}")
+                print(f"Latest archive: {archives[-1]}")
+            return archives
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching archive list: {e}")
+            return []
+
+
+    def fetch_games_from_archive_url(self, archive_url):
+        """
+        Fetch games directly from a Chess.com archive URL.
+        
+        Args:
+            archive_url: Full URL to a monthly archive
+            
+        Returns:
+            List of game dictionaries
+        """
+        try:
+            print(f"Fetching games from archive: {archive_url}")
+            response = requests.get(archive_url, headers=self.HEADERS, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            games = data.get('games', [])
+            print(f"Retrieved {len(games)} games from archive")
+            return games
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching games from {archive_url}: {e}")
+            return []
+
+
+    def fetch_all_games(self, username, limit_months=None):
+        """
+        Fetch ALL available games for a username by querying the archive list.
+        
+        Args:
+            username: Chess.com username
+            limit_months: Optional limit to only fetch the N most recent months
+            
+        Returns:
+            List of all games across all available monthly archives
+        """
+        archives = self.get_available_archives(username)
+        
+        if not archives:
+            print("No archives found for user")
+            return []
+        
+        # Optionally limit to recent months only
+        if limit_months and limit_months > 0:
+            archives = archives[-limit_months:]
+            print(f"Limited to most recent {limit_months} months")
+        
+        all_games = []
+        for i, archive_url in enumerate(archives, 1):
+            print(f"Processing archive {i}/{len(archives)}")
+            games = self.fetch_games_from_archive_url(archive_url)
+            all_games.extend(games)
+            
+            # Rate limiting
+            if i < len(archives):
+                time.sleep(0.5)
+        
+        print(f"Total games fetched: {len(all_games)}")
+        return all_games
+
 
     # ----------------------------
     # Fetching games from API
@@ -99,6 +184,51 @@ class ChessDataFetcher:
             return None
 
 
+    def _validate_game_duration(self, duration_seconds, game_url='', opponent=''):
+        """
+        Validate that game duration is non-negative and within reasonable bounds.
+        
+        Args:
+            duration_seconds: Calculated game duration in seconds
+            game_url: URL of the game (for logging)
+            opponent: Opponent username (for logging)
+            
+        Returns:
+            Validated duration in seconds, or None if invalid
+        """
+        if duration_seconds is None:
+            return None
+            
+        # Check for negative duration
+        if duration_seconds < 0:
+            self.invalid_duration_count += 1
+            log_entry = {
+                'reason': 'negative_duration',
+                'duration': duration_seconds,
+                'game_url': game_url,
+                'opponent': opponent
+            }
+            self.duration_validation_log.append(log_entry)
+            print(f"⚠️  Invalid game duration: {duration_seconds}s (negative) - Game URL: {game_url}")
+            return None
+        
+        # Check for unreasonably long games (e.g., > 24 hours = 86400 seconds)
+        # This catches timezone issues or date calculation errors
+        MAX_REASONABLE_DURATION = 86400  # 24 hours
+        if duration_seconds > MAX_REASONABLE_DURATION:
+            self.invalid_duration_count += 1
+            log_entry = {
+                'reason': 'unreasonably_long',
+                'duration': duration_seconds,
+                'game_url': game_url,
+                'opponent': opponent
+            }
+            self.duration_validation_log.append(log_entry)
+            print(f"⚠️  Invalid game duration: {duration_seconds}s (>{MAX_REASONABLE_DURATION}s) - Game URL: {game_url}")
+            return None
+            
+        return duration_seconds
+
 
     # ----------------------------
     # PGN parsing
@@ -162,28 +292,55 @@ class ChessDataFetcher:
                         .title()
                     )
 
-                # --- Time calculation ---
+                # --- Time calculation with improved validation ---
                 start_time_str = headers.get('StartTime')   # HH:MM:SS
                 end_date_str = headers.get('EndDate')       # YYYY.MM.DD
                 end_time_str = headers.get('EndTime')       # HH:MM:SS (optional)
+                start_date_str = headers.get('StartDate')   # YYYY.MM.DD (if available)
 
                 if start_time_str and end_date_str:
-                    start_dt = datetime.strptime(
-                        f"{end_date_str} {start_time_str}",
-                        "%Y.%m.%d %H:%M:%S"
-                    )
+                    try:
+                        # Use StartDate if available, otherwise assume same as EndDate
+                        if start_date_str:
+                            start_dt = datetime.strptime(
+                                f"{start_date_str} {start_time_str}",
+                                "%Y.%m.%d %H:%M:%S"
+                            )
+                        else:
+                            # Assume game started on same date as it ended
+                            start_dt = datetime.strptime(
+                                f"{end_date_str} {start_time_str}",
+                                "%Y.%m.%d %H:%M:%S"
+                            )
 
-                    if end_time_str:
-                        end_dt = datetime.strptime(
-                            f"{end_date_str} {end_time_str}",
-                            "%Y.%m.%d %H:%M:%S"
+                        if end_time_str:
+                            end_dt = datetime.strptime(
+                                f"{end_date_str} {end_time_str}",
+                                "%Y.%m.%d %H:%M:%S"
+                            )
+                        else:
+                            # Fallback to API end_time
+                            end_dt = datetime.fromtimestamp(game_data['end_time'])
+
+                        # Calculate duration
+                        raw_duration = int((end_dt - start_dt).total_seconds())
+                        
+                        # Handle midnight crossing: if duration is negative but small,
+                        # the game likely crossed midnight
+                        if raw_duration < 0 and raw_duration > -3600:
+                            # Add 24 hours worth of seconds
+                            raw_duration += 86400
+                        
+                        # Validate the duration
+                        game_duration_seconds = self._validate_game_duration(
+                            raw_duration,
+                            game_url=game_data.get('url', ''),
+                            opponent=opponent_username
                         )
-                    else:
-                        end_dt = datetime.fromtimestamp(game_data['end_time'])
-
-                    game_duration_seconds = int(
-                        (end_dt - start_dt).total_seconds()
-                    )
+                        
+                    except ValueError as e:
+                        print(f"Date parsing error for game vs {opponent_username}: {e}")
+                        game_duration_seconds = None
 
         except Exception as e:
             print(f"PGN parsing error: {e}")
@@ -316,6 +473,10 @@ class ChessDataFetcher:
         Returns:
             DataFrame of processed games
         """
+        # Reset validation counters
+        self.invalid_duration_count = 0
+        self.duration_validation_log = []
+        
         if mode == 'pgn':
             # games should be a path to PGN file
             df = self.pgn_to_dataframe(games, username)
@@ -328,5 +489,48 @@ class ChessDataFetcher:
         df = df.sort_values('timestamp', ascending=False)
         
         # Remove duplicates based on timestamp and opponent
+        initial_count = len(df)
         df = df.drop_duplicates(subset=['timestamp', 'opponent'], keep='first')
+        duplicates_removed = initial_count - len(df)
+        
+        # Filter out games with invalid (None) durations
+        if 'game_duration_seconds' in df.columns:
+            games_before_filter = len(df)
+            df = df[df['game_duration_seconds'].notna()]
+            invalid_games_removed = games_before_filter - len(df)
+            
+            # Log validation summary
+            if self.invalid_duration_count > 0 or invalid_games_removed > 0:
+                print(f"\n{'='*60}")
+                print(f"GAME DURATION VALIDATION SUMMARY")
+                print(f"{'='*60}")
+                print(f"Games with invalid durations detected: {self.invalid_duration_count}")
+                print(f"Games removed from dataset: {invalid_games_removed}")
+                print(f"Duplicates removed: {duplicates_removed}")
+                print(f"Final valid games: {len(df)}")
+                
+                if self.duration_validation_log:
+                    print(f"\nInvalid duration breakdown:")
+                    negative_count = sum(1 for log in self.duration_validation_log if log['reason'] == 'negative_duration')
+                    long_count = sum(1 for log in self.duration_validation_log if log['reason'] == 'unreasonably_long')
+                    if negative_count > 0:
+                        print(f"  - Negative durations: {negative_count}")
+                    if long_count > 0:
+                        print(f"  - Unreasonably long (>24h): {long_count}")
+                print(f"{'='*60}\n")
+        
         return df
+    
+    def get_validation_report(self):
+        """
+        Get a detailed report of all validation issues encountered.
+        
+        Returns:
+            Dictionary containing validation statistics and log entries
+        """
+        return {
+            'total_invalid': self.invalid_duration_count,
+            'validation_log': self.duration_validation_log,
+            'negative_durations': sum(1 for log in self.duration_validation_log if log['reason'] == 'negative_duration'),
+            'unreasonably_long': sum(1 for log in self.duration_validation_log if log['reason'] == 'unreasonably_long')
+        }
