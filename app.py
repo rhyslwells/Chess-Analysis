@@ -606,10 +606,10 @@ def render_opponent_strength(analyzer):
 
 def render_win_probability(df, analyzer, stats):
     """
-    Logistic regression–based win probability curves.
+    Logistic regression–based win probability curves with full classification metrics.
 
-    The model is trained on historical games.
-    The rating control below enables counterfactual exploration
+    The model is trained on historical games and evaluated using standard
+    classification metrics. The rating control enables counterfactual exploration
     without retraining the model.
     """
 
@@ -623,67 +623,81 @@ def render_win_probability(df, analyzer, stats):
     # ------------------------------------------------------------------
     predictor = ChessPredictor()
     X, y = analyzer.prepare_ml_features()
-    predictor.train(X, y)
-
+    training_results = predictor.train(X, y)
+    
+    metrics = training_results['classification_metrics']
+    
     # ------------------------------------------------------------------
-    # Rating context (derived consistently with analyzer)
+    # Win Probability Curves (FIRST - What Users Want)
+    # ------------------------------------------------------------------
+    st.subheader("Win Probability Predictions")
+    st.markdown(
+        "Based on your historical games, this model predicts your probability of winning "
+        "against opponents of different ratings. Use the controls below to explore different scenarios."
+    )
+    
+    # ------------------------------------------------------------------
+    # Rating context
     # ------------------------------------------------------------------
     current_rating = int(stats["current_elo"])
     avg_rating = int(stats["avg_user_rating"])
 
     st.markdown(
         f"""
-        **Rating context**
+        **Your Rating Context**
 
         - Current rating (most recent game): **{current_rating}**
-        - Average rating over selected period: **{avg_rating}**
-
-        The model is trained on your historical games.
-        The control below allows exploration of *what-if* rating scenarios
-        without retraining the model.
+        - Average rating over this period: **{avg_rating}**
         """
     )
 
     # ------------------------------------------------------------------
-    # Counterfactual rating input
+    # Interactive controls
     # ------------------------------------------------------------------
-    assumed_rating = st.number_input(
-        "Assumed player rating (what-if)",
-        min_value=400,
-        max_value=5000,
-        value=current_rating,
-        step=10,
-        help="Used only to generate win probability curves."
-    )
-
-    min_r, max_r = st.slider(
-        "Opponent rating range",
-        min_value=100,
-        max_value=4000,
-        value=(assumed_rating - 100, assumed_rating + 100),
-        step=10,
-    )
-
-    # ------------------------------------------------------------------
-    # Plot curves by colour
-    # ------------------------------------------------------------------
-    for is_white, label in [(True, "White"), (False, "Black")]:
-        st.subheader(
-            f"Expected win probability vs opponent rating ({label})"
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        assumed_rating = st.number_input(
+            "Your Rating (what-if scenario)",
+            min_value=400,
+            max_value=5000,
+            value=current_rating,
+            step=10,
+            help="Explore predictions at different rating levels without retraining the model"
+        )
+    
+    with col2:
+        rating_range = st.slider(
+            "Opponent Rating Range",
+            min_value=100,
+            max_value=4000,
+            value=(assumed_rating - 200, assumed_rating + 200),
+            step=25,
+            help="Set the range of opponent ratings to display"
         )
 
-        curve = predictor.get_win_probability_curve(
+    min_r, max_r = rating_range
+
+    # ------------------------------------------------------------------
+    # Plot curves by color
+    # ------------------------------------------------------------------
+    st.markdown("### Predicted Win Probability by Color")
+    
+    tab_white, tab_black = st.tabs(["Playing as White", "Playing as Black"])
+    
+    with tab_white:
+        st.caption("Your expected win probability when playing with white pieces")
+        curve_white = predictor.get_win_probability_curve(
             assumed_rating,
-            is_white=is_white,
+            is_white=True,
         )
-
-        curve = curve[
-            (curve["opponent_rating"] >= min_r)
-            & (curve["opponent_rating"] <= max_r)
+        curve_white = curve_white[
+            (curve_white["opponent_rating"] >= min_r)
+            & (curve_white["opponent_rating"] <= max_r)
         ]
 
-        fig = px.line(
-            curve,
+        fig_white = px.line(
+            curve_white,
             x="opponent_rating",
             y="win_probability",
             labels={
@@ -691,12 +705,206 @@ def render_win_probability(df, analyzer, stats):
                 "win_probability": "Win Probability",
             },
         )
+        fig_white.add_hline(y=0.5, line_dash="dash", line_color="gray", 
+                           annotation_text="50% (Even odds)")
+        fig_white.update_layout(yaxis_tickformat=".0%")
+        st.plotly_chart(fig_white, width='stretch')
+    
+    with tab_black:
+        st.caption("Your expected win probability when playing with black pieces")
+        curve_black = predictor.get_win_probability_curve(
+            assumed_rating,
+            is_white=False,
+        )
+        curve_black = curve_black[
+            (curve_black["opponent_rating"] >= min_r)
+            & (curve_black["opponent_rating"] <= max_r)
+        ]
 
-        fig.add_hline(y=0.5, line_dash="dash")
-        fig.update_layout(yaxis_tickformat=".0%")
+        fig_black = px.line(
+            curve_black,
+            x="opponent_rating",
+            y="win_probability",
+            labels={
+                "opponent_rating": "Opponent Rating",
+                "win_probability": "Win Probability",
+            },
+        )
+        fig_black.add_hline(y=0.5, line_dash="dash", line_color="gray",
+                           annotation_text="50% (Even odds)")
+        fig_black.update_layout(yaxis_tickformat=".0%")
+        st.plotly_chart(fig_black, width='stretch')
 
-        st.plotly_chart(fig, width='stretch')
-
+    st.divider()
+    
+    # ------------------------------------------------------------------
+    # Model Details (Expandable - For Interested Users)
+    # ------------------------------------------------------------------
+    with st.expander("📊 View Model Training & Performance Details", expanded=False):
+        st.markdown(
+            "This section provides detailed information about how the prediction model was trained "
+            "and how accurate its predictions are. These metrics help you understand the reliability "
+            "of the win probability predictions shown above."
+        )
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------------
+        # Training Information
+        # ------------------------------------------------------------------
+        st.markdown("### Training Information")
+        st.markdown(
+            "A **logistic regression** model was trained on your historical games to predict win probability "
+            "based on your rating, opponent rating, rating difference, and piece color (white/black). "
+            "The data was split into training data (80%) to teach the model patterns, and test data (20%) "
+            "to evaluate how well it predicts outcomes on games it hasn't seen before."
+        )
+        
+        info_col1, info_col2 = st.columns(2)
+        info_col1.metric("Training Samples", training_results['n_train_samples'])
+        info_col2.metric("Test Samples", training_results['n_test_samples'])
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------------
+        # Confusion Matrix Visualization
+        # ------------------------------------------------------------------
+        st.markdown("### Confusion Matrix")
+        st.caption(
+            "The confusion matrix shows how the model's predictions compare to actual outcomes. "
+            "Each cell shows the number of games in that category. Diagonal cells (top-left and bottom-right) "
+            "represent correct predictions, while off-diagonal cells show prediction errors."
+        )
+        
+        cm = metrics['confusion_matrix']
+        cm_matrix = np.array([
+            [cm['true_negatives'], cm['false_positives']],
+            [cm['false_negatives'], cm['true_positives']]
+        ])
+        
+        fig_cm = go.Figure(data=go.Heatmap(
+            z=cm_matrix,
+            x=['Predicted Loss/Draw', 'Predicted Win'],
+            y=['Actual Loss/Draw', 'Actual Win'],
+            text=cm_matrix,
+            texttemplate='%{text}',
+            textfont={"size": 16},
+            colorscale='Blues',
+            showscale=False
+        ))
+        
+        fig_cm.update_layout(
+            title="Confusion Matrix Visualization",
+            xaxis_title="Predicted Class",
+            yaxis_title="Actual Class",
+            height=400
+        )
+        
+        st.plotly_chart(fig_cm, width='stretch')
+        
+        
+        # ------------------------------------------------------------------
+        # Per-Class Metrics
+        # ------------------------------------------------------------------
+        st.markdown("### Per-Class Metrics")
+        st.caption(
+            "These metrics break down the model's performance for each outcome type. "
+            "They show how well the model performs specifically for wins vs losses/draws."
+        )
+        
+        class_report = metrics['classification_report']
+        report_df = pd.DataFrame({
+            'Class': ['Loss/Draw', 'Win'],
+            'Precision': [
+                class_report['0']['precision'],
+                class_report['1']['precision']
+            ],
+            'Recall': [
+                class_report['0']['recall'],
+                class_report['1']['recall']
+            ],
+            'F1-Score': [
+                class_report['0']['f1-score'],
+                class_report['1']['f1-score']
+            ],
+            'Support': [
+                class_report['0']['support'],
+                class_report['1']['support']
+            ]
+        })
+        
+        st.dataframe(
+            report_df.style.format({
+                'Precision': '{:.1%}',
+                'Recall': '{:.1%}',
+                'F1-Score': '{:.1%}',
+                'Support': '{:.0f}'
+            }),
+            hide_index=True,
+            width='stretch'
+        )
+        
+        # Overall metrics
+        st.markdown("### Overall Model Metrics")
+        col1, col2, col3, col4, col5 = st.columns(5)
+        col1.metric(
+            "Accuracy", 
+            f"{metrics['accuracy']:.1%}",
+            help="Percentage of all predictions (wins and losses/draws) that were correct"
+        )
+        col2.metric(
+            "Precision", 
+            f"{metrics['precision']:.1%}",
+            help="When predicting a win, how often the model is correct (fewer false alarms)"
+        )
+        col3.metric(
+            "Recall", 
+            f"{metrics['recall']:.1%}",
+            help="Of all actual wins, what percentage the model successfully identifies (fewer missed wins)"
+        )
+        col4.metric(
+            "F1 Score", 
+            f"{metrics['f1_score']:.1%}",
+            help="Balanced measure combining precision and recall (harmonic mean)"
+        )
+        if metrics['roc_auc'] is not None:
+            col5.metric(
+                "ROC AUC", 
+                f"{metrics['roc_auc']:.3f}",
+                help="Model's ability to distinguish between wins and losses (0.5 = random, 1.0 = perfect)"
+            )
+        
+        # Understanding the metrics
+        with st.expander("📖 Understanding These Metrics", expanded=False):
+            st.markdown("""
+            **Why are these different from overall accuracy?**
+            
+            Overall accuracy tells you what percentage of all predictions were correct, but it doesn't 
+            tell you *which types* of predictions the model is good at. Per-class metrics reveal this detail.
+            
+            For example, you might have 70% overall accuracy, but the model could be:
+            - Great at predicting wins (90% precision) but poor at predicting losses (50% precision), or
+            - Balanced across both outcome types (70% for each)
+            
+            **Metric Definitions:**
+            
+            - **Precision**: When the model predicts this outcome, how often is it correct?  
+              *High precision = few false alarms for this outcome type*
+            
+            - **Recall**: Of all actual occurrences of this outcome, how many does the model catch?  
+              *High recall = few missed predictions for this outcome type*
+            
+            - **F1-Score**: Balance between precision and recall (harmonic mean)  
+              *High F1 = good at both catching this outcome and avoiding false predictions*
+            
+            - **Support**: The number of test games with this actual outcome  
+              *Shows how many examples the model had to evaluate*
+            """)
+            
+            st.info(
+                "💡 **Tip**: A good model has similar, high metrics for both classes. "
+                "If one class has much lower scores, the model struggles more with that outcome type."
+            )
 def render_game_length_analysis(analyzer):
     """
     Game length analysis based on wall-clock duration.

@@ -7,7 +7,15 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import (
+    accuracy_score, 
+    classification_report, 
+    confusion_matrix,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score
+)
 import pickle
 from pathlib import Path
 
@@ -17,9 +25,12 @@ class ChessPredictor:
     def __init__(self, model_dir="models"):
         """Initialize predictor with model directory."""
         self.model = None
-        # self.model_dir = Path(model_dir)
-        # self.model_dir.mkdir(exist_ok=True)
         self.is_trained = False
+        self.X_test = None
+        self.y_test = None
+        self.y_pred = None
+        self.y_pred_proba = None
+        self.classification_metrics = None
         
     def train(self, X, y, test_size=0.2):
         """
@@ -38,30 +49,122 @@ class ChessPredictor:
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=42, stratify=y if len(np.unique(y)) > 1 else None
+            X, y, test_size=test_size, random_state=42, 
+            stratify=y if len(np.unique(y)) > 1 else None
         )
+        
+        # Store test data for later evaluation
+        self.X_test = X_test
+        self.y_test = y_test
         
         # Train model
         self.model = LogisticRegression(random_state=42, max_iter=1000)
         self.model.fit(X_train, y_train)
         self.is_trained = True
         
-        # Evaluate
+        # Generate predictions on test set
+        self.y_pred = self.model.predict(X_test)
+        self.y_pred_proba = self.model.predict_proba(X_test)[:, 1]
+        
+        # Evaluate on both train and test
         y_pred_train = self.model.predict(X_train)
-        y_pred_test = self.model.predict(X_test)
         
         train_acc = accuracy_score(y_train, y_pred_train)
-        test_acc = accuracy_score(y_test, y_pred_test)
+        test_acc = accuracy_score(y_test, self.y_pred)
+        
+        # Compute classification metrics
+        self.classification_metrics = self._compute_classification_metrics()
         
         metrics = {
             'train_accuracy': train_acc,
             'test_accuracy': test_acc,
             'n_train_samples': len(X_train),
             'n_test_samples': len(X_test),
-            'feature_names': X.columns.tolist() if hasattr(X, 'columns') else None
+            'feature_names': X.columns.tolist() if hasattr(X, 'columns') else None,
+            'classification_metrics': self.classification_metrics
         }
         
         return metrics
+    
+    def _compute_classification_metrics(self):
+        """
+        Compute comprehensive classification metrics on test set.
+        
+        Returns:
+            Dictionary containing classification performance metrics
+        """
+        if self.y_test is None or self.y_pred is None:
+            return None
+        
+        # Basic metrics
+        accuracy = accuracy_score(self.y_test, self.y_pred)
+        precision = precision_score(self.y_test, self.y_pred, zero_division=0)
+        recall = recall_score(self.y_test, self.y_pred, zero_division=0)
+        f1 = f1_score(self.y_test, self.y_pred, zero_division=0)
+        
+        # Confusion matrix
+        cm = confusion_matrix(self.y_test, self.y_pred)
+        tn, fp, fn, tp = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
+        
+        # ROC AUC (if we have probability predictions)
+        try:
+            roc_auc = roc_auc_score(self.y_test, self.y_pred_proba)
+        except:
+            roc_auc = None
+        
+        # Classification report as dict
+        class_report = classification_report(
+            self.y_test, 
+            self.y_pred, 
+            output_dict=True,
+            zero_division=0
+        )
+        
+        return {
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'roc_auc': roc_auc,
+            'confusion_matrix': {
+                'true_negatives': int(tn),
+                'false_positives': int(fp),
+                'false_negatives': int(fn),
+                'true_positives': int(tp)
+            },
+            'classification_report': class_report,
+            'support': {
+                'losses': int(np.sum(self.y_test == 0)),
+                'wins': int(np.sum(self.y_test == 1))
+            }
+        }
+    
+    def get_classification_metrics(self):
+        """
+        Get classification metrics computed on test set.
+        
+        Returns:
+            Dictionary of classification metrics or None if model not trained
+        """
+        if not self.is_trained:
+            return None
+        return self.classification_metrics
+    
+    def get_predictions(self):
+        """
+        Get predicted labels and probabilities for test set.
+        
+        Returns:
+            Dictionary with predictions or None if model not trained
+        """
+        if not self.is_trained or self.y_pred is None:
+            return None
+        
+        return {
+            'y_true': self.y_test,
+            'y_pred': self.y_pred,
+            'y_pred_proba': self.y_pred_proba
+        }
     
     def predict_win_probability(self, user_rating, opponent_rating, is_white=True):
         """
@@ -119,27 +222,6 @@ class ChessPredictor:
             'win_probability': probabilities
         })
     
-    # def save_model(self, username):
-    #     """Save trained model to disk."""
-    #     if not self.is_trained:
-    #         raise ValueError("No trained model to save")
-        
-    #     model_path = self.model_dir / f"{username}_model.pkl"
-    #     with open(model_path, 'wb') as f:
-    #         pickle.dump(self.model, f)
-    #     print(f"Model saved to {model_path}")
-    
-    # def load_model(self, username):
-    #     """Load trained model from disk."""
-    #     model_path = self.model_dir / f"{username}_model.pkl"
-    #     if not model_path.exists():
-    #         raise FileNotFoundError(f"No saved model found for {username}")
-        
-    #     with open(model_path, 'rb') as f:
-    #         self.model = pickle.load(f)
-    #     self.is_trained = True
-    #     print(f"Model loaded from {model_path}")
-    
     def get_feature_importance(self):
         """Get feature coefficients from logistic regression."""
         if not self.is_trained:
@@ -155,4 +237,3 @@ class ChessPredictor:
         }).sort_values('abs_coefficient', ascending=False)
         
         return importance_df
-    
