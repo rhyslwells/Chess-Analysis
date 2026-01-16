@@ -2,3 +2,4 @@
 *.egg-info/
 data/
 .history
+__pycache__/
