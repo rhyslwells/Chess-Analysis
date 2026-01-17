@@ -1,5 +1,5 @@
 ```mermaid
-flowchart TD
+flowchart LR
 
     %% ======================================================
     %% Entry points
@@ -11,9 +11,9 @@ flowchart TD
     end
 
     %% ======================================================
-    %% Archive discovery (Chess.com API)
+    %% Archive discovery
     %% ======================================================
-    subgraph ARCHIVES["Archive Discovery (Chess.com API)"]
+    subgraph ARCHIVES["Archive Discovery"]
         get_available_archives["get_available_archives()"]
         fetch_games_from_archive_url["fetch_games_from_archive_url()"]
     end
@@ -30,8 +30,8 @@ flowchart TD
     %% ======================================================
     subgraph PARSING["Parsing (JSON / PGN)"]
         parse_game_from_json["parse_game_from_json()"]
-        parse_game_from_pgn["parse_game_from_pgn()"]
         pgn_to_dataframe["pgn_to_dataframe()"]
+        parse_game_from_pgn["parse_game_from_pgn()"]
     end
 
     %% ======================================================
@@ -43,29 +43,34 @@ flowchart TD
     end
 
     %% ======================================================
-    %% High-level workflows
+    %% Archive-driven workflow
     %% ======================================================
-    fetch_all_games --> get_available_archives
-    get_available_archives --> fetch_games_from_archive_url
+    get_available_archives --> fetch_all_games
     fetch_games_from_archive_url --> fetch_all_games
 
-    fetch_multiple_months --> fetch_games
+    %% ======================================================
+    %% Monthly workflow
+    %% ======================================================
+    fetch_games --> fetch_multiple_months
 
-    process_and_save --> parse_game_from_json
-    process_and_save --> pgn_to_dataframe
+    %% ======================================================
+    %% Processing workflow
+    %% ======================================================
+    parse_game_from_json --> process_and_save
+    pgn_to_dataframe --> process_and_save
 
     %% ======================================================
     %% PGN workflow
     %% ======================================================
-    pgn_to_dataframe --> parse_game_from_pgn
+    parse_game_from_pgn --> pgn_to_dataframe
 
     %% ======================================================
     %% Parsing internals
     %% ======================================================
-    parse_game_from_json --> validate_duration
+    validate_duration --> parse_game_from_json
 
     %% ======================================================
     %% Reporting
     %% ======================================================
-    validate_duration --> get_validation_report
+    get_validation_report --> validate_duration
 ```

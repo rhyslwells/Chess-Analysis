@@ -2,69 +2,98 @@
 flowchart TD
 
     %% =========================
-    %% Entry points
+    %% Entry points (public API)
     %% =========================
     subgraph ENTRY["Entry Points"]
-        EP1["fetch_and_process_all()"]
+        EP1["fetch_all_games()"]
         EP2["fetch_multiple_months()"]
-        EP3["load_existing_data()"]
+        EP3["process_and_save()"]
     end
 
     %% =========================
-    %% Data acquisition
+    %% Chess.com API
     %% =========================
-    subgraph ACQUISITION["Data Acquisition"]
-        API_JSON["Chess.com API<br/>Monthly JSON"]
-        API_PGN["Chess.com PGN<br/>Archives"]
+    subgraph API["Chess.com API"]
+        ARCHIVES["Monthly archives index"]
+        MONTH_JSON["Monthly games JSON"]
+        STATS["Player stats / Elo"]
     end
 
     %% =========================
-    %% Local storage
+    %% Fetching layer
     %% =========================
-    subgraph STORAGE["Local Storage"]
-        PGN_FILES["Raw PGN files<br/>data/pgns/"]
-        MERGED_PGN["Merged PGN file"]
+    subgraph FETCHING["Fetching"]
+        GET_ARCHIVES["get_available_archives()"]
+        FETCH_ARCHIVE["fetch_games_from_archive_url()"]
+        FETCH_MONTH["fetch_games()"]
+        FETCH_ELO["get_current_elo()"]
     end
 
     %% =========================
-    %% Parsing and normalization
+    %% Parsing & normalization
     %% =========================
     subgraph PARSING["Parsing & Normalization"]
-        PARSE_JSON["Parse JSON games"]
-        PARSE_PGN["Parse PGN games"]
-        METADATA["Opening and metadata extraction"]
+        PARSE_JSON["parse_game_from_json()"]
+        PARSE_PGN["parse_game_from_pgn()"]
+        VALIDATE[" _validate_game_duration()"]
+        NORMALISE["Opening, ratings, result, timestamps"]
     end
 
     %% =========================
     %% Dataset assembly
     %% =========================
     subgraph DATASET["Dataset Assembly"]
-        DF["Unified game DataFrame"]
+        DF["Unified pandas DataFrame"]
     end
 
     %% =========================
-    %% Persistence
+    %% Reporting
     %% =========================
-    subgraph PERSISTENCE["Persistence"]
-        CSV["Games CSV<br/>data/{username}_games.csv"]
+    subgraph REPORTING["Validation Reporting"]
+        REPORT["get_validation_report()"]
     end
 
-    %% Entry flows
-    EP1 --> API_PGN
-    EP2 --> API_JSON
-    EP3 --> CSV
+    %% =========================
+    %% Entry-point sinks
+    %% =========================
+    GET_ARCHIVES --> EP1
+    FETCH_ARCHIVE --> EP1
 
-    %% Acquisition flows
-    API_PGN --> PGN_FILES
-    PGN_FILES --> MERGED_PGN
-    API_JSON --> PARSE_JSON
+    FETCH_MONTH --> EP2
 
-    %% Parsing flows
-    MERGED_PGN --> PARSE_PGN
-    PARSE_JSON --> METADATA
-    PARSE_PGN --> METADATA
+    PARSE_JSON --> EP3
+    PARSE_PGN --> EP3
 
+    %% =========================
+    %% API → Fetching
+    %% =========================
+    ARCHIVES --> GET_ARCHIVES
+    MONTH_JSON --> FETCH_ARCHIVE
+    MONTH_JSON --> FETCH_MONTH
+    STATS --> FETCH_ELO
+
+    %% =========================
+    %% Fetching → Parsing
+    %% =========================
+    FETCH_ARCHIVE --> PARSE_JSON
+    FETCH_MONTH --> PARSE_JSON
+
+    %% =========================
+    %% Parsing internals
+    %% =========================
+    PARSE_JSON --> VALIDATE
+    VALIDATE --> NORMALISE
+
+    PARSE_PGN --> NORMALISE
+
+    %% =========================
     %% Convergence
-    METADATA --> DF
-    DF --> CSV
+    %% =========================
+    NORMALISE --> DF
+    DF --> EP3
+
+    %% =========================
+    %% Reporting flow
+    %% =========================
+    VALIDATE --> REPORT
 ```
