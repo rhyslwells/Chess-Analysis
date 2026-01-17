@@ -200,6 +200,8 @@ class ChessAnalyzer:
         
         return tc_groups
     
+
+    
     def get_game_length_stats(self):
         """
         Analyze game length statistics if move data is available.
@@ -238,6 +240,8 @@ class ChessAnalyzer:
         
         return length_stats
     
+
+
     def get_recent_games(self, n=10):
         """Get the most recent n games."""
         return self.df.sort_values('timestamp', ascending=False).head(n)

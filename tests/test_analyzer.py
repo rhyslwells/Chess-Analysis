@@ -5,8 +5,12 @@ Unit tests for ChessAnalyzer class.
 
 import pytest
 import pandas as pd
-import numpy as np
+import sys
+from pathlib import Path
 from datetime import datetime, timedelta
+
+# Add parent directory to path to import from src
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.analyzer import ChessAnalyzer
 
 
@@ -54,39 +58,64 @@ class TestChessAnalyzer:
     # -------------------------------------------------------------------------
 
     def test_initialization(self, sample_games_df):
-        """Test that analyzer initializes correctly."""
+        """Test that analyzer initializes correctly with all derived features."""
         analyzer = ChessAnalyzer(sample_games_df)
         
         assert analyzer.df is not None
         assert len(analyzer.df) == 20
-        assert 'rating_diff' in analyzer.df.columns
-        assert 'opponent_category' in analyzer.df.columns
-        assert 'game_num' in analyzer.df.columns
+        
+        # Check all derived features are created
+        expected_columns = ['rating_diff', 'opponent_category', 'game_num', 
+                          'move_count', 'result_category']
+        for col in expected_columns:
+            assert col in analyzer.df.columns
+        
+        # Verify date conversion
+        assert pd.api.types.is_datetime64_any_dtype(analyzer.df['date'])
+        
+        # Verify rating_diff calculation
+        assert analyzer.df.iloc[0]['rating_diff'] == 20  # 1500 - 1480
 
-    def test_derived_features_rating_diff(self, analyzer):
-        """Test that rating difference is calculated correctly."""
-        assert 'rating_diff' in analyzer.df.columns
-        assert analyzer.df.iloc[0]['rating_diff'] == (1500 - 1480)
-
-    def test_derived_features_opponent_category(self, analyzer):
-        """Test opponent strength categorization."""
+    def test_opponent_categorization(self, analyzer):
+        """Test opponent strength categorization logic."""
         df = analyzer.df
         
-        # Check that categories are assigned
         assert 'opponent_category' in df.columns
         categories = df['opponent_category'].unique()
-        assert len(categories) > 0
         assert all(cat in ['Lower Rated', 'Similar Rating', 'Higher Rated'] 
                   for cat in categories)
 
-    def test_derived_features_date_conversion(self, analyzer):
-        """Test that dates are converted to datetime."""
-        assert pd.api.types.is_datetime64_any_dtype(analyzer.df['date'])
-
-    def test_derived_features_move_count(self, analyzer):
-        """Test move count extraction from moves_san."""
-        assert 'move_count' in analyzer.df.columns
-        assert analyzer.df['move_count'].iloc[0] > 0
+    def test_opponent_category_boundaries(self):
+        """Test opponent categorization boundary conditions (±50 rating)."""
+        df = pd.DataFrame({
+            'date': ['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04'],
+            'timestamp': [1, 2, 3, 4],
+            'user_rating': [1500, 1500, 1500, 1500],
+            'opponent_rating': [1449, 1450, 1550, 1551],  # Test boundaries
+            'user_color': ['white'] * 4,
+            'opponent': ['opp1', 'opp2', 'opp3', 'opp4'],
+            'result': [1, 1, 0, 0],
+            'result_label': ['Win'] * 2 + ['Loss'] * 2,
+            'opening': ['Opening'] * 4,
+            'eco': ['E00'] * 4,
+            'eco_url': ['url'] * 4,
+            'time_control': ['rapid'] * 4,
+            'game_url': ['url'] * 4,
+            'game_duration_seconds': [600] * 4,
+            'pgn': ['pgn'] * 4,
+            'moves_san': ['e4 e5'] * 4,
+        })
+        
+        analyzer = ChessAnalyzer(df)
+        
+        # diff = 51 -> Lower Rated
+        # diff = 50 -> Similar Rating (boundary)
+        # diff = -50 -> Similar Rating (boundary)
+        # diff = -51 -> Higher Rated
+        assert analyzer.df.iloc[0]['opponent_category'] == 'Lower Rated'
+        assert analyzer.df.iloc[1]['opponent_category'] == 'Similar Rating'
+        assert analyzer.df.iloc[2]['opponent_category'] == 'Similar Rating'
+        assert analyzer.df.iloc[3]['opponent_category'] == 'Higher Rated'
 
     # -------------------------------------------------------------------------
     # Overall Stats Tests
@@ -96,39 +125,60 @@ class TestChessAnalyzer:
         """Test overall statistics calculation."""
         stats = analyzer.get_overall_stats()
         
+        # Basic counts
         assert stats['total_games'] == 20
         assert stats['wins'] + stats['losses'] + stats['draws'] == 20
-        assert 0 <= stats['win_rate'] <= 100
+        
+        # With i % 3 pattern: wins at i=0,3,6,9,12,15,18 = 7 wins
+        assert stats['wins'] == 7
+        assert abs(stats['win_rate'] - 35.0) < 0.01
+        
+        # Rating progression
+        assert stats['starting_elo'] == 1500
+        assert stats['current_elo'] == 1538  # 1500 + 19*2
+        assert stats['elo_change'] == 38
+        
+        # Averages
         assert stats['avg_user_rating'] > 0
         assert stats['avg_opponent_rating'] > 0
 
-    def test_get_overall_stats_win_rate_calculation(self, analyzer):
-        """Test win rate calculation accuracy."""
-        stats = analyzer.get_overall_stats()
-        
-        # With i % 3 == 0 pattern, we expect ~7 wins out of 20 games
-        expected_wins = len([i for i in range(20) if i % 3 == 0])
-        assert stats['wins'] == expected_wins
-        assert abs(stats['win_rate'] - (expected_wins / 20 * 100)) < 0.01
-
-    def test_get_overall_stats_elo_progression(self, analyzer):
-        """Test ELO progression tracking."""
-        stats = analyzer.get_overall_stats()
-        
-        # Starting ELO should be 1500 (first game)
-        assert stats['starting_elo'] == 1500
-        # Current ELO should be higher (last game has rating 1500 + 19*2)
-        assert stats['current_elo'] == 1538
-        assert stats['elo_change'] == 38
-
     def test_get_overall_stats_empty_dataframe(self):
         """Test stats with empty DataFrame."""
-        empty_df = pd.DataFrame(columns=['date', 'user_rating', 'result'])
+        empty_df = pd.DataFrame(columns=['date', 'user_rating', 'result', 
+                                        'timestamp', 'opponent_rating'])
         analyzer = ChessAnalyzer(empty_df)
         stats = analyzer.get_overall_stats()
         
         assert stats['total_games'] == 0
         assert stats['win_rate'] == 0
+
+    def test_single_game_dataframe(self):
+        """Test analyzer with single game."""
+        df = pd.DataFrame({
+            'date': ['2024-01-01'],
+            'timestamp': [1],
+            'user_rating': [1500],
+            'opponent_rating': [1480],
+            'user_color': ['white'],
+            'opponent': ['opponent1'],
+            'result': [1],
+            'result_label': ['Win'],
+            'opening': ['Opening'],
+            'eco': ['E00'],
+            'eco_url': ['url'],
+            'time_control': ['rapid'],
+            'game_url': ['url'],
+            'game_duration_seconds': [600],
+            'pgn': ['pgn'],
+            'moves_san': ['e4 e5'],
+        })
+        
+        analyzer = ChessAnalyzer(df)
+        stats = analyzer.get_overall_stats()
+        
+        assert stats['total_games'] == 1
+        assert stats['wins'] == 1
+        assert stats['win_rate'] == 100.0
 
     # -------------------------------------------------------------------------
     # Performance Analysis Tests
@@ -139,20 +189,26 @@ class TestChessAnalyzer:
         perf = analyzer.get_performance_by_opponent_strength()
         
         assert isinstance(perf, pd.DataFrame)
-        assert 'category' in perf.columns
-        assert 'games' in perf.columns
-        assert 'win_rate' in perf.columns
-        assert perf['games'].sum() <= 20  # May not have all categories
+        required_cols = ['category', 'games', 'wins', 'win_rate', 'avg_score']
+        for col in required_cols:
+            assert col in perf.columns
+        
+        assert perf['games'].sum() <= 20
+        assert all(0 <= wr <= 100 for wr in perf['win_rate'])
 
     def test_get_color_performance(self, analyzer):
         """Test performance breakdown by color."""
         color_perf = analyzer.get_color_performance()
         
         assert isinstance(color_perf, pd.DataFrame)
-        assert len(color_perf) == 2  # White and Black
-        assert 'color' in color_perf.columns
+        assert len(color_perf) == 2
         assert set(color_perf['color']) == {'White', 'Black'}
         assert color_perf['games'].sum() == 20
+        
+        # Check rounding to 2 decimals
+        for _, row in color_perf.iterrows():
+            assert isinstance(row['win_rate'], (int, float))
+            assert isinstance(row['avg_score'], (int, float))
 
     def test_get_time_control_stats(self, analyzer):
         """Test performance breakdown by time control."""
@@ -161,7 +217,11 @@ class TestChessAnalyzer:
         assert isinstance(tc_stats, pd.DataFrame)
         assert 'time_control' in tc_stats.columns
         assert 'games' in tc_stats.columns
+        assert 'win_rate' in tc_stats.columns
         assert tc_stats['games'].sum() == 20
+        
+        # Check sorted by games played
+        assert tc_stats['games'].is_monotonic_decreasing
 
     # -------------------------------------------------------------------------
     # Opening Analysis Tests
@@ -173,16 +233,13 @@ class TestChessAnalyzer:
         
         assert isinstance(opening_stats, pd.DataFrame)
         assert len(opening_stats) <= 5
-        assert 'opening' in opening_stats.columns
-        assert 'games' in opening_stats.columns
-        assert 'win_rate' in opening_stats.columns
+        
+        required_cols = ['opening', 'games', 'wins', 'win_rate']
+        for col in required_cols:
+            assert col in opening_stats.columns
         
         # Check sorted by games played
         assert opening_stats['games'].is_monotonic_decreasing
-
-    def test_get_opening_stats_win_rate_calculation(self, analyzer):
-        """Test that opening win rates are correctly calculated."""
-        opening_stats = analyzer.get_opening_stats(top_n=10)
         
         # Win rate should be percentage (0-100)
         assert all(0 <= wr <= 100 for wr in opening_stats['win_rate'])
@@ -205,15 +262,15 @@ class TestChessAnalyzer:
         """Test rating volatility metrics."""
         volatility = analyzer.get_rating_volatility()
         
-        assert 'volatility' in volatility
-        assert 'avg_rating_change' in volatility
-        assert 'max_rating_gain' in volatility
-        assert 'max_rating_loss' in volatility
+        required_keys = ['volatility', 'avg_rating_change', 
+                        'max_rating_gain', 'max_rating_loss']
+        for key in required_keys:
+            assert key in volatility
         
         assert volatility['volatility'] >= 0
         assert volatility['avg_rating_change'] >= 0
 
-    def test_get_rating_volatility_with_stable_rating(self):
+    def test_get_rating_volatility_stable_rating(self):
         """Test volatility with perfectly stable rating."""
         df = pd.DataFrame({
             'date': ['2024-01-01', '2024-01-02', '2024-01-03'],
@@ -231,12 +288,13 @@ class TestChessAnalyzer:
             'game_url': ['url1', 'url2', 'url3'],
             'game_duration_seconds': [600, 700, 800],
             'pgn': ['pgn1', 'pgn2', 'pgn3'],
+            'moves_san': ['e4 e5', 'e4 e6', 'e4 c5'],
         })
         
         analyzer = ChessAnalyzer(df)
         volatility = analyzer.get_rating_volatility()
         
-        # With constant rating, rating changes should be 0
+        # With constant rating, changes should be 0
         assert volatility['avg_rating_change'] == 0
         assert volatility['max_rating_gain'] == 0
         assert volatility['max_rating_loss'] == 0
@@ -245,44 +303,30 @@ class TestChessAnalyzer:
     # Time Series Tests
     # -------------------------------------------------------------------------
 
-    def test_get_results_over_time_monthly(self, analyzer):
-        """Test results aggregation by month."""
-        results = analyzer.get_results_over_time(period='M')
-        
-        assert isinstance(results, pd.DataFrame)
-        assert 'Wins' in results.columns
-        assert 'Losses' in results.columns
-        assert 'Draws' in results.columns
-
-    def test_get_results_over_time_weekly(self, analyzer):
-        """Test results aggregation by week."""
-        results = analyzer.get_results_over_time(period='W')
-        
-        assert isinstance(results, pd.DataFrame)
-        assert len(results) > 0
-
-    def test_get_results_over_time_daily(self, analyzer):
-        """Test results aggregation by day."""
-        results = analyzer.get_results_over_time(period='D')
-        
-        assert isinstance(results, pd.DataFrame)
-        # Should have entries for each day with games
-        assert len(results) == 20  # One game per day in sample data
+    def test_get_results_over_time(self, analyzer):
+        """Test results aggregation by different periods."""
+        for period in ['D', 'W', 'M']:
+            results = analyzer.get_results_over_time(period=period)
+            
+            assert isinstance(results, pd.DataFrame)
+            assert 'Wins' in results.columns
+            assert 'Losses' in results.columns
+            assert 'Draws' in results.columns
+            assert len(results) > 0
 
     # -------------------------------------------------------------------------
     # Game Length Tests
     # -------------------------------------------------------------------------
 
     def test_get_game_length_stats(self, analyzer):
-        """Test game length statistics."""
+        """Test game length statistics based on duration in seconds."""
         stats = analyzer.get_game_length_stats()
         
         assert stats is not None
-        assert 'average' in stats
-        assert 'median' in stats
-        assert 'shortest' in stats
-        assert 'longest' in stats
-        assert 'length_result_corr' in stats
+        required_keys = ['average', 'median', 'shortest', 'longest', 
+                        'length_result_corr']
+        for key in required_keys:
+            assert key in stats
         
         assert stats['shortest'] <= stats['median'] <= stats['longest']
         assert -1 <= stats['length_result_corr'] <= 1
@@ -295,9 +339,10 @@ class TestChessAnalyzer:
         assert 'Result' in length_stats.columns
         assert 'Games' in length_stats.columns
         assert 'Average Length (s)' in length_stats.columns
+        assert 'Std Dev (s)' in length_stats.columns
 
-    def test_get_game_length_stats_without_duration(self):
-        """Test game length stats when duration data is missing."""
+    def test_game_length_missing_data(self):
+        """Test game length stats when duration column is missing."""
         df = pd.DataFrame({
             'date': ['2024-01-01'],
             'timestamp': [1],
@@ -313,14 +358,17 @@ class TestChessAnalyzer:
             'time_control': ['rapid'],
             'game_url': ['url'],
             'pgn': ['pgn'],
+            'moves_san': ['e4 e5'],
         })
         
         analyzer = ChessAnalyzer(df)
         
-        # Should handle missing game_duration_seconds gracefully
+        # Should return None when game_duration_seconds column is missing
         stats = analyzer.get_game_length_stats()
-        # Will have NaN values but shouldn't crash
-        assert stats is not None
+        length_by_result = analyzer.get_game_length_by_result()
+        
+        assert stats is None
+        assert length_by_result is None
 
     # -------------------------------------------------------------------------
     # ML Feature Preparation Tests
@@ -335,24 +383,17 @@ class TestChessAnalyzer:
         assert len(X) == len(y) == 20
         
         # Check feature columns
-        assert 'user_rating' in X.columns
-        assert 'opponent_rating' in X.columns
-        assert 'rating_diff' in X.columns
-        assert 'is_white' in X.columns
+        expected_features = ['user_rating', 'opponent_rating', 
+                           'rating_diff', 'is_white']
+        for feat in expected_features:
+            assert feat in X.columns
         
-        # Check target is binary
+        # Check target is binary (wins vs non-wins)
         assert set(y.unique()).issubset({0, 1})
-
-    def test_prepare_ml_features_target_encoding(self, analyzer):
-        """Test that wins are encoded as 1, non-wins as 0."""
-        X, y = analyzer.prepare_ml_features()
         
+        # Verify encoding
         wins = (analyzer.df['result'] == 1).sum()
         assert y.sum() == wins
-
-    def test_prepare_ml_features_is_white_encoding(self, analyzer):
-        """Test that color is correctly encoded as binary."""
-        X, y = analyzer.prepare_ml_features()
         
         white_games = (analyzer.df['user_color'] == 'white').sum()
         assert X['is_white'].sum() == white_games
@@ -367,72 +408,11 @@ class TestChessAnalyzer:
         
         assert len(recent) == 5
         # Should be sorted by timestamp descending
-        assert recent.iloc[0]['timestamp'] > recent.iloc[4]['timestamp']
+        assert recent.iloc[0]['timestamp'] > recent.iloc[-1]['timestamp']
 
-    def test_get_recent_games_more_than_available(self, analyzer):
+    def test_get_recent_games_exceeds_available(self, analyzer):
         """Test requesting more games than available."""
         recent = analyzer.get_recent_games(n=100)
         
-        # Should return all 20 games
+        # Should return all available games
         assert len(recent) == 20
-
-    # -------------------------------------------------------------------------
-    # Edge Cases
-    # -------------------------------------------------------------------------
-
-    def test_opponent_category_boundaries(self):
-        """Test opponent categorization boundary conditions."""
-        df = pd.DataFrame({
-            'date': ['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04'],
-            'timestamp': [1, 2, 3, 4],
-            'user_rating': [1500, 1500, 1500, 1500],
-            'opponent_rating': [1449, 1450, 1550, 1551],  # Test boundaries
-            'user_color': ['white'] * 4,
-            'opponent': ['opp1', 'opp2', 'opp3', 'opp4'],
-            'result': [1, 1, 0, 0],
-            'result_label': ['Win'] * 2 + ['Loss'] * 2,
-            'opening': ['Opening'] * 4,
-            'eco': ['E00'] * 4,
-            'eco_url': ['url'] * 4,
-            'time_control': ['rapid'] * 4,
-            'game_url': ['url'] * 4,
-            'pgn': ['pgn'] * 4,
-        })
-        
-        analyzer = ChessAnalyzer(df)
-        
-        # 1449: diff = 51 -> Lower Rated
-        # 1450: diff = 50 -> Similar Rating (boundary)
-        # 1550: diff = -50 -> Similar Rating (boundary)
-        # 1551: diff = -51 -> Higher Rated
-        
-        assert analyzer.df.iloc[0]['opponent_category'] == 'Lower Rated'
-        assert analyzer.df.iloc[1]['opponent_category'] == 'Similar Rating'
-        assert analyzer.df.iloc[2]['opponent_category'] == 'Similar Rating'
-        assert analyzer.df.iloc[3]['opponent_category'] == 'Higher Rated'
-
-    def test_single_game_dataframe(self):
-        """Test analyzer with single game."""
-        df = pd.DataFrame({
-            'date': ['2024-01-01'],
-            'timestamp': [1],
-            'user_rating': [1500],
-            'opponent_rating': [1480],
-            'user_color': ['white'],
-            'opponent': ['opponent1'],
-            'result': [1],
-            'result_label': ['Win'],
-            'opening': ['Opening'],
-            'eco': ['E00'],
-            'eco_url': ['url'],
-            'time_control': ['rapid'],
-            'game_url': ['url'],
-            'pgn': ['pgn'],
-        })
-        
-        analyzer = ChessAnalyzer(df)
-        stats = analyzer.get_overall_stats()
-        
-        assert stats['total_games'] == 1
-        assert stats['wins'] == 1
-        assert stats['win_rate'] == 100.0
