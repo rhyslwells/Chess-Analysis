@@ -209,7 +209,7 @@ class ChessDataFetcher:
                 'opponent': opponent
             }
             self.duration_validation_log.append(log_entry)
-            print(f"⚠️  Invalid game duration: {duration_seconds}s (negative) - Game URL: {game_url}")
+            print(f"Invalid game duration: {duration_seconds}s (negative) - Game URL: {game_url}")
             return None
         
         # Check for unreasonably long games (e.g., > 24 hours = 86400 seconds)
@@ -224,7 +224,7 @@ class ChessDataFetcher:
                 'opponent': opponent
             }
             self.duration_validation_log.append(log_entry)
-            print(f"⚠️  Invalid game duration: {duration_seconds}s (>{MAX_REASONABLE_DURATION}s) - Game URL: {game_url}")
+            print(f"Invalid game duration: {duration_seconds}s (>{MAX_REASONABLE_DURATION}s) - Game URL: {game_url}")
             return None
             
         return duration_seconds

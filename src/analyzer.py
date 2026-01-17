@@ -4,7 +4,6 @@ Computes metrics and statistics from chess game data.
 """
 
 import pandas as pd
-import numpy as np
 
 class ChessAnalyzer:
     """Analyzes chess game data and computes performance metrics."""

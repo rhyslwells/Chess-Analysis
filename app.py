@@ -141,8 +141,8 @@ def render_sidebar():
                             earliest = pd.to_datetime(df['date']).min().strftime('%Y-%m-%d')
                             latest = pd.to_datetime(df['date']).max().strftime('%Y-%m-%d')
                             st.success(
-                                f"✅ Loaded {len(df)} games\n\n"
-                                f"📅 Date range: {earliest} to {latest}"
+                                f"Loaded {len(df)} games\n\n"
+                                f"Date range: {earliest} to {latest}"
                             )
                         else:
                             st.success(f"Loaded {len(df)} games.")
@@ -201,6 +201,19 @@ def render_sidebar():
                 st.info(f"Analyzing {filtered_count} of {len(df)} games")
             else:
                 st.warning("No time controls selected. Please select at least one.")
+            
+            # Download CSV button
+            st.divider()
+            csv = df.to_csv(index=False)
+            st.download_button(
+                label="Download Games as CSV",
+                data=csv,
+                file_name=f"{username}_chess_games.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+
 
 def render_analysis_navigation():
     """
