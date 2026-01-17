@@ -173,8 +173,8 @@ class ChessAnalyzer:
             if len(subset) > 0:
                 wins = (subset['result'] == 1).sum()
                 total = len(subset)
-                win_rate = (wins / total * 100) #Done: round to 0 decimal
-                avg_score = subset['result'].mean() #done: round to 0 decimal
+                win_rate = (wins / total * 100)
+                avg_score = subset['result'].mean()
                 win_rate = round(win_rate, 2)
                 avg_score = round(avg_score, 2)
                 
@@ -200,48 +200,6 @@ class ChessAnalyzer:
         
         return tc_groups
     
-
-    
-    def get_game_length_stats(self):
-        """
-        Analyze game length statistics if move data is available.
-        
-        Returns:
-            Dictionary with game length metrics and correlation with results
-        """
-        if 'move_count' not in self.df.columns:
-            return None
-        
-        stats = {
-            'avg_game_length': self.df['move_count'].mean(),
-            'median_game_length': self.df['move_count'].median(),
-            'shortest_game': self.df['move_count'].min(),
-            'longest_game': self.df['move_count'].max(),
-            'length_score_correlation': self.df['move_count'].corr(self.df['result'])
-        }
-        
-        return stats
-    
-    def get_game_length_by_result(self):
-        """
-        Analyze average game length by result category.
-        
-        Returns:
-            DataFrame with game length statistics by result
-        """
-        if 'move_count' not in self.df.columns:
-            return None
-        
-        length_stats = self.df.groupby('result_category')['move_count'].agg([
-            'count', 'mean', 'median', 'std'
-        ]).reset_index()
-        
-        length_stats.columns = ['result', 'games', 'avg_length', 'median_length', 'std_length']
-        
-        return length_stats
-    
-
-
     def get_recent_games(self, n=10):
         """Get the most recent n games."""
         return self.df.sort_values('timestamp', ascending=False).head(n)
@@ -270,6 +228,9 @@ class ChessAnalyzer:
     def get_game_length_stats(self):
         """
         Overall game-length statistics based on wall-clock duration.
+        
+        Returns:
+            Dictionary with game length metrics and correlation with results
         """
         df = self.df.dropna(subset=["game_duration_seconds"])
 
@@ -291,6 +252,9 @@ class ChessAnalyzer:
     def get_game_length_by_result(self):
         """
         Game-length statistics grouped by outcome.
+        
+        Returns:
+            DataFrame with game length statistics by result
         """
         df = self.df.dropna(subset=["game_duration_seconds"])
 
@@ -315,3 +279,4 @@ class ChessAnalyzer:
         grouped["Std Dev (s)"] = grouped["Std Dev (s)"].round(0)
 
         return grouped
+
