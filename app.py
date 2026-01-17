@@ -915,7 +915,7 @@ def render_win_probability(df, analyzer, stats):
             """)
             
             st.info(
-                "💡 **Tip**: A good model has similar, high metrics for both classes. "
+                "**Tip**: A good model has similar, high metrics for both classes. "
                 "If one class has much lower scores, the model struggles more with that outcome type."
             )
         
@@ -1244,7 +1244,7 @@ def main():
 
     if not selected_time_controls:
         st.warning(
-            "⚠️ No time controls selected. Please select at least one time control in the sidebar."
+            "No time controls selected. Please select at least one time control in the sidebar."
         )
         return
 
@@ -1252,7 +1252,7 @@ def main():
 
     if df_filtered.empty:
         st.warning(
-            "⚠️ No games match the selected filters. Please adjust your filters in the sidebar."
+            "No games match the selected filters. Please adjust your filters in the sidebar."
         )
         return
     # endregion
