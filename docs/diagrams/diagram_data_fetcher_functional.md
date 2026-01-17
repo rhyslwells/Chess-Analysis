@@ -1,41 +1,71 @@
 ```mermaid
 flowchart TD
+
+    %% ======================================================
     %% Entry points
-    fetch_and_process_all["fetch_and_process_all()"]
-    fetch_multiple_months["fetch_multiple_months()"]
-    process_and_save["process_and_save()"]
-    load_existing_data["load_existing_data()"]
+    %% ======================================================
+    subgraph ENTRY["Entry Points"]
+        fetch_all_games["fetch_all_games()"]
+        fetch_multiple_months["fetch_multiple_months()"]
+        process_and_save["process_and_save()"]
+    end
 
-    %% Fetching (API)
-    get_archives_list["get_archives_list()"]
-    fetch_games["fetch_games()"]
-    fetch_pgn_for_month["fetch_pgn_for_month()"]
-    download_all_pgns["download_all_pgns()"]
+    %% ======================================================
+    %% Archive discovery (Chess.com API)
+    %% ======================================================
+    subgraph ARCHIVES["Archive Discovery (Chess.com API)"]
+        get_available_archives["get_available_archives()"]
+        fetch_games_from_archive_url["fetch_games_from_archive_url()"]
+    end
 
-    %% PGN handling
-    merge_pgns["merge_pgns()"]
-    pgn_to_dataframe["pgn_to_dataframe()"]
+    %% ======================================================
+    %% Direct monthly fetch (API)
+    %% ======================================================
+    subgraph MONTHLY["Direct Monthly Fetch (API)"]
+        fetch_games["fetch_games()"]
+    end
 
-    %% Parsing
-    parse_game_from_json["parse_game_from_json()"]
-    parse_game_from_pgn["parse_game_from_pgn()"]
-    extract_opening["_extract_opening_from_pgn()"]
+    %% ======================================================
+    %% Parsing (JSON / PGN)
+    %% ======================================================
+    subgraph PARSING["Parsing (JSON / PGN)"]
+        parse_game_from_json["parse_game_from_json()"]
+        parse_game_from_pgn["parse_game_from_pgn()"]
+        pgn_to_dataframe["pgn_to_dataframe()"]
+    end
 
-    %% Relationships — high-level workflows
-    fetch_and_process_all --> download_all_pgns
-    fetch_and_process_all --> merge_pgns
-    fetch_and_process_all --> process_and_save
+    %% ======================================================
+    %% Validation / internals
+    %% ======================================================
+    subgraph VALIDATION["Validation / Internals"]
+        validate_duration["_validate_game_duration()"]
+        get_validation_report["get_validation_report()"]
+    end
+
+    %% ======================================================
+    %% High-level workflows
+    %% ======================================================
+    fetch_all_games --> get_available_archives
+    get_available_archives --> fetch_games_from_archive_url
+    fetch_games_from_archive_url --> fetch_all_games
 
     fetch_multiple_months --> fetch_games
+
     process_and_save --> parse_game_from_json
     process_and_save --> pgn_to_dataframe
 
-    %% Download workflow
-    download_all_pgns --> get_archives_list
-
+    %% ======================================================
     %% PGN workflow
+    %% ======================================================
     pgn_to_dataframe --> parse_game_from_pgn
 
+    %% ======================================================
     %% Parsing internals
-    parse_game_from_json --> extract_opening
+    %% ======================================================
+    parse_game_from_json --> validate_duration
+
+    %% ======================================================
+    %% Reporting
+    %% ======================================================
+    validate_duration --> get_validation_report
 ```
