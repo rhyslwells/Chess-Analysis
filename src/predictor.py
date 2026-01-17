@@ -32,28 +32,45 @@ class ChessPredictor:
         self.y_pred_proba = None
         self.classification_metrics = None
         
-    def train(self, X, y, test_size=0.2):
+
+    def train(self, X, y, test_size=0.2, max_recent_games=None):
         """
-        Train logistic regression model.
+        Train logistic regression model with time-aware splitting.
         
         Args:
-            X: Feature matrix (DataFrame or array)
+            X: Feature matrix (DataFrame, must be sorted by date)
             y: Target vector (win=1, loss/draw=0)
             test_size: Proportion of data for testing
+            max_recent_games: If set, only use the N most recent games
             
         Returns:
             Dictionary with training metrics
         """
+        # Optionally limit to recent games
+        if max_recent_games and len(X) > max_recent_games:
+            X = X.iloc[-max_recent_games:].copy()
+            y = y.iloc[-max_recent_games:].copy()
+        
         if len(X) < 20:
             print("Warning: Less than 20 games available. Model may not be reliable.")
         
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=test_size, random_state=42, 
-            stratify=y if len(np.unique(y)) > 1 else None
-        )
+        # TIME-BASED SPLIT (no random shuffling)
+        # Most recent games become test set
+        split_idx = int(len(X) * (1 - test_size))
         
-        # Store test data for later evaluation
+        X_train = X.iloc[:split_idx]
+        X_test = X.iloc[split_idx:]
+        y_train = y.iloc[:split_idx]
+        y_test = y.iloc[split_idx:]
+        
+        # Check for stratification feasibility
+        if len(np.unique(y_train)) > 1 and len(np.unique(y_test)) > 1:
+            # Both train and test have both classes, proceed normally
+            pass
+        else:
+            print("Warning: Train or test set has only one class. Results may be skewed.")
+        
+        # Store test data
         self.X_test = X_test
         self.y_test = y_test
         
@@ -66,9 +83,8 @@ class ChessPredictor:
         self.y_pred = self.model.predict(X_test)
         self.y_pred_proba = self.model.predict_proba(X_test)[:, 1]
         
-        # Evaluate on both train and test
+        # Evaluate
         y_pred_train = self.model.predict(X_train)
-        
         train_acc = accuracy_score(y_train, y_pred_train)
         test_acc = accuracy_score(y_test, self.y_pred)
         
@@ -81,11 +97,12 @@ class ChessPredictor:
             'n_train_samples': len(X_train),
             'n_test_samples': len(X_test),
             'feature_names': X.columns.tolist() if hasattr(X, 'columns') else None,
-            'classification_metrics': self.classification_metrics
+            'classification_metrics': self.classification_metrics,
+            'split_type': 'time_based'  # Document the split method
         }
         
         return metrics
-    
+
     def _compute_classification_metrics(self):
         """
         Compute comprehensive classification metrics on test set.
@@ -139,7 +156,6 @@ class ChessPredictor:
             }
         }
     
-
     def predict_win_probability(self, user_rating, opponent_rating, is_white=True):
         """
         Predict probability of winning given ratings and color.
