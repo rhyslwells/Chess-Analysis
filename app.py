@@ -740,7 +740,7 @@ def render_win_probability(df, analyzer, stats):
     # ------------------------------------------------------------------
     # Model Details (Expandable - For Interested Users)
     # ------------------------------------------------------------------
-    with st.expander("📊 View Model Training & Performance Details", expanded=False):
+    with st.expander("View Model Training & Performance Details", expanded=False):
         st.markdown(
             "This section provides detailed information about how the prediction model was trained "
             "and how accurate its predictions are. These metrics help you understand the reliability "
@@ -875,7 +875,7 @@ def render_win_probability(df, analyzer, stats):
             )
         
         # Understanding the metrics
-        with st.expander("📖 Understanding These Metrics", expanded=False):
+        with st.expander("Understanding These Metrics", expanded=False):
             st.markdown("""
             **Why are these different from overall accuracy?**
             
@@ -905,6 +905,54 @@ def render_win_probability(df, analyzer, stats):
                 "💡 **Tip**: A good model has similar, high metrics for both classes. "
                 "If one class has much lower scores, the model struggles more with that outcome type."
             )
+        
+
+        
+        st.markdown("---")
+        
+        # ------------------------------------------------------------------
+        # Feature Importance
+        # ------------------------------------------------------------------
+        st.markdown("### Feature Importance")
+        st.caption(
+            "These coefficients show how each factor influences your win probability. "
+            "Positive values increase win probability, negative values decrease it."
+        )
+        
+        importance_df = predictor.get_feature_importance()
+        if importance_df is not None:
+                    # Create a horizontal bar chart
+                    fig_importance = px.bar(
+                        importance_df,
+                        y='feature',
+                        x='coefficient',
+                        orientation='h',
+                        labels={'coefficient': 'Coefficient', 'feature': 'Feature'},
+                        title='Model Feature Coefficients',
+                        color='coefficient',
+                        color_continuous_scale='RdBu_r'
+                    )
+                    fig_importance.update_traces(
+                        hovertemplate='<b>%{y}</b><br>Coefficient: %{x:.3f}<extra></extra>'
+                    )
+                    fig_importance.update_layout(showlegend=False)
+                    st.plotly_chart(fig_importance, width='stretch')
+            
+            
+        with st.expander("Understanding Feature Importance"):
+            st.markdown("""
+            **What do these coefficients mean?**
+            
+            - **Positive coefficient**: This factor increases your win probability
+            - **Negative coefficient**: This factor decreases your win probability
+            - **Larger magnitude**: Stronger influence on the outcome
+            
+            For example:
+            - A positive coefficient for `is_white` means playing white gives you an advantage
+            - A positive coefficient for `rating_diff` means higher rating differences favor you
+            - The `user_rating` and `opponent_rating` coefficients show how raw ratings influence outcomes
+            """)
+
 def render_game_length_analysis(analyzer):
     """
     Game length analysis based on wall-clock duration.
