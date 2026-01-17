@@ -6,7 +6,6 @@ Machine learning model for predicting game outcomes.
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
     accuracy_score, 
     classification_report, 
@@ -16,8 +15,6 @@ from sklearn.metrics import (
     f1_score,
     roc_auc_score
 )
-import pickle
-from pathlib import Path
 
 class ChessPredictor:
     """Predicts win probability based on historical game data."""
