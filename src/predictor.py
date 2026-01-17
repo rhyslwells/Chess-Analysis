@@ -139,33 +139,7 @@ class ChessPredictor:
             }
         }
     
-    def get_classification_metrics(self):
-        """
-        Get classification metrics computed on test set.
-        
-        Returns:
-            Dictionary of classification metrics or None if model not trained
-        """
-        if not self.is_trained:
-            return None
-        return self.classification_metrics
-    
-    def get_predictions(self):
-        """
-        Get predicted labels and probabilities for test set.
-        
-        Returns:
-            Dictionary with predictions or None if model not trained
-        """
-        if not self.is_trained or self.y_pred is None:
-            return None
-        
-        return {
-            'y_true': self.y_test,
-            'y_pred': self.y_pred,
-            'y_pred_proba': self.y_pred_proba
-        }
-    
+
     def predict_win_probability(self, user_rating, opponent_rating, is_white=True):
         """
         Predict probability of winning given ratings and color.
