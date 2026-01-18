@@ -17,22 +17,17 @@ emoji_pattern = re.compile(
     flags=re.UNICODE
 )
 
-# --------- Folders to ignore ----------
-IGNORE_FOLDERS = {
-    "__pycache__",
-    "venv",
-    ".git",
-    ".venv",
-    ".data",
-    "chess_analysis.egg-info",
-    "data",
-    "scripts"  # prevent script cleaning itself
+# --------- Folders to focus on ----------
+FOCUS_FOLDERS = {
+    "src",
+    "tests",
+    "notebooks",
 }
 
 def clean_python_files():
-    # Compute PROJECT ROOT (one level up from this script)
+    # Compute PROJECT ROOT (two level up from this script)
     PROJECT_ROOT = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..")
+        os.path.join(os.path.dirname(__file__), "../..")
     )
 
     log_path = os.path.join(PROJECT_ROOT, "emoji_clean_log.txt")
@@ -42,8 +37,16 @@ def clean_python_files():
         log.write("------------------\n\n")
 
         for root, dirs, files in os.walk(PROJECT_ROOT):
-            # Filter ignored dirs
-            dirs[:] = [d for d in dirs if d not in IGNORE_FOLDERS]
+            # Get the relative path from project root
+            rel_path = os.path.relpath(root, PROJECT_ROOT)
+            
+            # Check if current directory or any parent is in FOCUS_FOLDERS
+            path_parts = rel_path.split(os.sep)
+            is_focused = any(part in FOCUS_FOLDERS for part in path_parts)
+            
+            # Skip if not in a focused folder (unless we're at root level)
+            if rel_path != "." and not is_focused:
+                continue
 
             for file in files:
                 if file.endswith(".py"):

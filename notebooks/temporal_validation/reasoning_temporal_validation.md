@@ -1,5 +1,3 @@
-Excellent! Let me break down what these results mean for you:
-
 ## 📊 Summary: Your Chess Performance is Declining
 
 ### Key Finding: **USE TIME-BASED SPLITTING**
