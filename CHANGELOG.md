@@ -15,3 +15,6 @@
 - Data fetcher now gets up to current date when fetching games.
 - Removed depreciation warnings for sizing width.
 - no longer need to rerun due to sidebar re-rendering
+
+## [1.0.3] - 2026-01-17
+- Refactored app.py into multiple files for better organization.

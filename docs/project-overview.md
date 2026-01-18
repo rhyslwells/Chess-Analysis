@@ -1,10 +1,8 @@
-# **Chess Game Analysis Dashboard – Project Overview**
+# **Chess Game Analysis – Project Overview**
 
 ## **Objective**
 
-This application provides an on-demand analytical environment for chess players to examine their historical performance using their own game data. It is designed to support structured exploration of results, trends, and opponent dynamics without relying on continuous updates, live services, or complex configuration.
-
-The primary goal is to make past games easier to interrogate and reason about.
+This application provides an on-demand analytical environment for chess players to examine their historical performance using their own game data. It is designed to support structured exploration of results, trends, and opponent characteristics over time. The primary goal is to make past games easier to interrogate and reason about.
 
 ## **Application Scope**
 
@@ -14,12 +12,10 @@ Core characteristics:
 
 * Analysis runs only when the user requests it
 * Results reflect a fixed historical snapshot
-* No background processing or automatic refresh
-* Outputs are deterministic given the same input data
 
 ## **Data Model**
 
-Each game is treated as a standalone analytical record containing:
+Each game is treated as a standalone record containing:
 
 * Date and time
 * Player colour and result
@@ -27,8 +23,6 @@ Each game is treated as a standalone analytical record containing:
 * Rating difference
 * Opening metadata (when available)
 * A direct link to the original online game
-
-Games are persisted locally in a simple tabular format to support inspection, reuse, and incremental extension.
 
 ## **Analytical Capabilities**
 
@@ -48,18 +42,4 @@ Users interact with the application through a small number of clearly defined st
 
 1. Provide a Chess.com username and optional date constraints
 2. Fetch historical games explicitly
-3. Explore computed metrics and visual summaries
-4. Inspect individual games via direct external links
-
-## **Structure and Extensibility**
-
-The application is organised around distinct responsibilities:
-
-* Data retrieval and persistence
-* Metric computation and feature derivation
-* Predictive modelling
-* Presentation and interaction logic
-
-## **Positioning**
-
-This dashboard is best understood as an analytical companion. Users decide when data is collected and analysed, and all outputs can be traced back directly to the underlying games.
+3. Explore Analysis tabs for performance summaries, trends, and predictions
