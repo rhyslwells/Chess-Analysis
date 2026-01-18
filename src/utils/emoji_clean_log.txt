@@ -1,3 +1,25 @@
 Emoji Cleaning Log
 ------------------
 
+Processing folder: notebooks
+==================================================
+
+No emojis found: c:\Users\RhysL\Desktop\Chess-Analysis\notebooks\explore_analyzer.py
+
+File: c:\Users\RhysL\Desktop\Chess-Analysis\notebooks\data_fetcher\explore_data_fetcher.py
+Total emojis removed: 1
+  Line 341: ✅
+
+No emojis found: c:\Users\RhysL\Desktop\Chess-Analysis\notebooks\data_fetcher\reasoning_data_fetcher.md
+
+No emojis found: c:\Users\RhysL\Desktop\Chess-Analysis\notebooks\temporal_validation\post_temporal_validation.md
+
+No emojis found: c:\Users\RhysL\Desktop\Chess-Analysis\notebooks\temporal_validation\reasoning_temporal_validation.md
+
+No emojis found: c:\Users\RhysL\Desktop\Chess-Analysis\notebooks\temporal_validation\temporal_validation.py
+
+
+==================================================
+SUMMARY
+Files processed: 6
+Files with emojis: 1

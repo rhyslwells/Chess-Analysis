@@ -1,4 +1,4 @@
-## 📊 Summary: Your Chess Performance is Declining
+##  Summary: Your Chess Performance is Declining
 
 ### Key Finding: **USE TIME-BASED SPLITTING**
 
@@ -34,7 +34,7 @@ Looking at your games split into 4 quarters (Q1 = oldest, Q4 = newest):
 | Q1 | 859 | 52% | 🟢 Best period |
 | Q2 | 840 | 52% | 🟡 Slight decline |
 | Q3 | 832 | 40% | 🟠 Dropping |
-| Q4 | 768 | 37% | 🔴 **Worst period** |
+| Q4 | 768 | 37% |  **Worst period** |
 
 **What this means:** You started strong (859 rating, 52% wins) but have steadily declined to 768 rating with only 37% wins in your most recent games.
 
@@ -56,7 +56,7 @@ Looking at your games split into 4 quarters (Q1 = oldest, Q4 = newest):
 
 ---
 
-## 🤔 The Unusual Pattern Explained
+##  The Unusual Pattern Explained
 
 The script says "accuracy INCREASING over time" and "time-based accuracy is HIGHER" - this seems counterintuitive, but here's why:
 
@@ -70,7 +70,7 @@ As you dropped in rating, the matchmaking system paired you with easier opponent
 
 ---
 
-## 🎯 What This Means for Your Dashboard
+##  What This Means for Your Dashboard
 
 ### **Definitive Answer: USE TIME-BASED SPLITTING**
 
@@ -90,7 +90,7 @@ If you switch to time-based splitting:
 
 ---
 
-## 📈 Side Note: What Happened to Your Chess?
+##  Side Note: What Happened to Your Chess?
 
 The data shows clear performance decline:
 - Started at 859 → now at ~768 (-91 points total decline)
@@ -106,7 +106,7 @@ This is actually a **perfect example** of why time-based splitting matters - you
 
 ---
 
-## ✅ Final Recommendation
+##  Final Recommendation
 
 **Implement time-based splitting in your predictor.py** because:
 1. Your rating changed by -50 points (threshold met)
@@ -123,7 +123,7 @@ Let me re-interpret these results properly:
 
 ---
 
-## 🎯 What This Analysis Actually Proves
+##  What This Analysis Actually Proves
 
 ### **Key Finding: Chess data IS temporal and time-based splitting IS necessary**
 
@@ -185,44 +185,44 @@ This seems backwards, but it's actually **proof that time-based splitting is wor
 
 ---
 
-## 🔬 What This Proves for Your Dashboard
+##  What This Proves for Your Dashboard
 
 ### **Scientific Validation:**
 
 This analysis demonstrates that for ANY chess player using your dashboard:
 
-1. ✅ **Player ratings drift over time** (proven: -50 to -91 point swings)
-2. ✅ **Random splitting is methodologically flawed** (tests on wrong time period)
-3. ✅ **Time-based splitting is necessary** (matches real-world prediction task)
+1.  **Player ratings drift over time** (proven: -50 to -91 point swings)
+2.  **Random splitting is methodologically flawed** (tests on wrong time period)
+3.  **Time-based splitting is necessary** (matches real-world prediction task)
 
 ---
 
-## 📊 General Principles for Chess ML Models
+##  General Principles for Chess ML Models
 
 Based on this validation:
 
 ### **When to use Time-Based Splitting:**
-- ✅ Player ratings change >50 points over dataset period
-- ✅ Win rates fluctuate across time periods
-- ✅ Predicting future performance (not just fitting historical data)
-- ✅ Real-world deployment (dashboard users want current predictions)
+-  Player ratings change >50 points over dataset period
+-  Win rates fluctuate across time periods
+-  Predicting future performance (not just fitting historical data)
+-  Real-world deployment (dashboard users want current predictions)
 
 ### **When Random Split Might Be Acceptable:**
-- ❌ Rating changes <50 points (very stable performance)
-- ❌ Academic exercise (not real predictions)
-- ❌ Very large datasets (>10,000 games) where temporal effects average out
+-  Rating changes <50 points (very stable performance)
+-  Academic exercise (not real predictions)
+-  Very large datasets (>10,000 games) where temporal effects average out
 
 **For your dashboard:** Since you can't know in advance if a user's rating is stable, **always use time-based splitting** as the safe, principled approach.
 
 ---
 
-## 💡 Key Insight: The Model's Job
+##  Key Insight: The Model's Job
 
 **What we're really asking:**
 
-❌ **Wrong question (Random split):** "On average across all time, how well can we predict games?"
+ **Wrong question (Random split):** "On average across all time, how well can we predict games?"
 
-✅ **Right question (Time-based split):** "Given a player's historical games, how well can we predict their NEXT game?"
+ **Right question (Time-based split):** "Given a player's historical games, how well can we predict their NEXT game?"
 
 Time-based splitting answers the right question because:
 - It simulates real usage (past → future)
@@ -231,7 +231,7 @@ Time-based splitting answers the right question because:
 
 ---
 
-## ✅ Final Verdict for Your Dashboard
+##  Final Verdict for Your Dashboard
 
 **Implement time-based splitting for ALL users** because:
 

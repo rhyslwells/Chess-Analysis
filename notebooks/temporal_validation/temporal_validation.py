@@ -75,7 +75,7 @@ def fetch_fresh_data(username, months_back=3):
     df['date'] = pd.to_datetime(df['date'])
     df = df.sort_values('date').reset_index(drop=True)
     
-    print(f"\n✓ Successfully loaded {len(df)} games")
+    print(f"\n Successfully loaded {len(df)} games")
     print(f"  Date range: {df['date'].min().date()} to {df['date'].max().date()}")
     
     return df
@@ -192,13 +192,13 @@ def compare_early_late_performance(df, split_ratio=0.5):
     print("\n" + "=" * 70)
     print("RECOMMENDATION:")
     if abs(stats['rating_change']) > 100:
-        print("⚠️  LARGE rating change detected (>100 points)")
+        print("  LARGE rating change detected (>100 points)")
         print("    → Definitely use time-based splitting")
     elif abs(stats['rating_change']) > 50:
-        print("⚠️  Moderate rating change detected (>50 points)")
+        print("  Moderate rating change detected (>50 points)")
         print("    → Time-based splitting recommended")
     else:
-        print("✓  Ratings relatively stable (<50 point change)")
+        print("  Ratings relatively stable (<50 point change)")
         print("    → Random split may be acceptable, but time-based is still safer")
     print("=" * 70 + "\n")
     
@@ -338,14 +338,14 @@ def temporal_cross_validation(df, n_splits=5):
         
         print("\n" + "-" * 70)
         if trend < -0.02:
-            print("📉 Accuracy DECREASING over time")
+            print(" Accuracy DECREASING over time")
             print("   → Your skill is improving! Old games don't predict new performance well.")
             print("   → Time-based splitting is CRITICAL")
         elif trend > 0.02:
-            print("📈 Accuracy INCREASING over time")
+            print(" Accuracy INCREASING over time")
             print("   → Unusual pattern. Might indicate declining performance or data issues.")
         else:
-            print("➡️  Accuracy relatively STABLE over time")
+            print("  Accuracy relatively STABLE over time")
             print("   → Performance is consistent. Time-based splitting still recommended.")
     
     print("=" * 70 + "\n")
@@ -420,21 +420,21 @@ def compare_split_methods(df):
     diff = test_acc_r - test_acc_t
     
     if diff > 0.05:
-        print(f"⚠️  Random split accuracy is {diff:.1%} HIGHER than time-based")
+        print(f"  Random split accuracy is {diff:.1%} HIGHER than time-based")
         print("   → Random split is giving you overly optimistic results!")
         print("   → It's testing on easy old games mixed with hard new games")
         print("   → Time-based split is more realistic for predicting future games")
         print("   → RECOMMENDATION: Switch to time-based splitting")
     elif diff > 0.02:
-        print(f"⚠️  Random split accuracy is {diff:.1%} higher than time-based")
+        print(f"  Random split accuracy is {diff:.1%} higher than time-based")
         print("   → Moderate difference suggests time-based is more appropriate")
         print("   → RECOMMENDATION: Use time-based splitting")
     elif diff < -0.02:
-        print(f"✓  Time-based accuracy is {-diff:.1%} HIGHER than random")
+        print(f"  Time-based accuracy is {-diff:.1%} HIGHER than random")
         print("   → This is unusual. Your recent games might be easier.")
         print("   → Still recommend time-based for realistic evaluation")
     else:
-        print(f"✓  Both methods give similar accuracy (diff: {diff:.1%})")
+        print(f"  Both methods give similar accuracy (diff: {diff:.1%})")
         print("   → Either method works, but time-based is more principled")
         print("   → RECOMMENDATION: Use time-based for consistency")
     
@@ -533,11 +533,11 @@ def plot_residuals_over_time(df):
     print(f"Second half avg absolute error: {np.abs(second_half).mean():.3f}")
     
     if np.abs(second_half).mean() > np.abs(first_half).mean() + 0.05:
-        print("\n⚠️  Errors are LARGER for recent games")
+        print("\n  Errors are LARGER for recent games")
         print("   → Model struggles more with new games than old games")
         print("   → Time-based splitting is recommended")
     else:
-        print("\n✓  Errors are relatively consistent across time")
+        print("\n  Errors are relatively consistent across time")
     
     print("=" * 70 + "\n")
     
@@ -650,18 +650,18 @@ def run_full_analysis(username=None, df=None):
     split_diff = results['split_comparison']['difference'] > 0.03
     
     if rating_changed or split_diff:
-        print("🎯 STRONG RECOMMENDATION: Use time-based splitting")
+        print(" STRONG RECOMMENDATION: Use time-based splitting")
         print("\nReasons:")
         if rating_changed:
             print(f"  • Your rating changed by {results['early_late']['rating_change']:+.0f} points")
         if split_diff:
             print(f"  • Random split gives {results['split_comparison']['difference']:.1%} inflated accuracy")
         print("\nTime-based splitting will:")
-        print("  ✓ Give more realistic performance estimates")
-        print("  ✓ Test on your current skill level")
-        print("  ✓ Better predict future game outcomes")
+        print("   Give more realistic performance estimates")
+        print("   Test on your current skill level")
+        print("   Better predict future game outcomes")
     else:
-        print("✓ MODERATE RECOMMENDATION: Use time-based splitting")
+        print(" MODERATE RECOMMENDATION: Use time-based splitting")
         print("\nWhile your performance is relatively stable, time-based splitting is still")
         print("best practice for temporal data like chess games.")
     
@@ -719,7 +719,7 @@ def quick_check(username=None, df=None):
         try:
             df = load_chess_data(username)
         except FileNotFoundError:
-            print("\n⚠️  No saved data found. Fetching fresh data from Chess.com...")
+            print("\n  No saved data found. Fetching fresh data from Chess.com...")
             df = fetch_fresh_data(username, months_back=3)
     
     compare_early_late_performance(df)

@@ -19,9 +19,9 @@ emoji_pattern = re.compile(
 
 # --------- Folders to focus on ----------
 FOCUS_FOLDERS = {
-    "src",
-    "tests",
-    "notebooks",
+    # "src",
+    # "tests",
+    "notebooks"
 }
 
 def clean_python_files():
@@ -30,58 +30,82 @@ def clean_python_files():
         os.path.join(os.path.dirname(__file__), "../..")
     )
 
-    log_path = os.path.join(PROJECT_ROOT, "emoji_clean_log.txt")
+    # Create log in the same directory as this script (src/utils)
+    log_path = os.path.join(os.path.dirname(__file__), "emoji_clean_log.txt")
+
+    files_processed = 0
+    files_with_emojis = 0
 
     with open(log_path, "w", encoding="utf-8") as log:
         log.write("Emoji Cleaning Log\n")
         log.write("------------------\n\n")
 
-        for root, dirs, files in os.walk(PROJECT_ROOT):
-            # Get the relative path from project root
-            rel_path = os.path.relpath(root, PROJECT_ROOT)
+        for focus_folder in FOCUS_FOLDERS:
+            focus_path = os.path.join(PROJECT_ROOT, focus_folder)
             
-            # Check if current directory or any parent is in FOCUS_FOLDERS
-            path_parts = rel_path.split(os.sep)
-            is_focused = any(part in FOCUS_FOLDERS for part in path_parts)
-            
-            # Skip if not in a focused folder (unless we're at root level)
-            if rel_path != "." and not is_focused:
+            # Skip if the focused folder doesn't exist
+            if not os.path.exists(focus_path):
+                msg = f"Skipping {focus_folder} (doesn't exist)"
+                print(msg)
+                log.write(f"{msg}\n\n")
                 continue
+            
+            log.write(f"Processing folder: {focus_folder}\n")
+            log.write("=" * 50 + "\n\n")
+            
+            for root, dirs, files in os.walk(focus_path):
+                for file in files:
+                    if file.endswith(".py") or file.endswith(".md"):
+                        file_path = os.path.join(root, file)
+                        files_processed += 1
 
-            for file in files:
-                if file.endswith(".py"):
-                    file_path = os.path.join(root, file)
+                        try:
+                            with open(file_path, "r", encoding="utf-8") as f:
+                                lines = f.readlines()
+                        except Exception as e:
+                            error_msg = f"Error reading {file_path}: {e}"
+                            print(error_msg)
+                            log.write(f"{error_msg}\n\n")
+                            continue
 
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        lines = f.readlines()
+                        emoji_count_total = 0
+                        line_records = []
+                        cleaned_lines = []
 
-                    emoji_count_total = 0
-                    line_records = []
-                    cleaned_lines = []
+                        for idx, line in enumerate(lines, start=1):
+                            matches = emoji_pattern.findall(line)
+                            if matches:
+                                emoji_count_total += len(matches)
+                                line_records.append((idx, matches))
+                            cleaned_lines.append(emoji_pattern.sub("", line))
 
-                    for idx, line in enumerate(lines, start=1):
-                        matches = emoji_pattern.findall(line)
-                        if matches:
-                            emoji_count_total += len(matches)
-                            line_records.append((idx, matches))
-                        cleaned_lines.append(emoji_pattern.sub("", line))
+                        # Only rewrite if emojis found
+                        if emoji_count_total > 0:
+                            files_with_emojis += 1
+                            with open(file_path, "w", encoding="utf-8") as f:
+                                f.writelines(cleaned_lines)
 
-                    # Only rewrite if emojis found
-                    if emoji_count_total > 0:
-                        with open(file_path, "w", encoding="utf-8") as f:
-                            f.writelines(cleaned_lines)
+                            log.write(f"File: {file_path}\n")
+                            log.write(f"Total emojis removed: {emoji_count_total}\n")
+                            for ln, found in line_records:
+                                log.write(f"  Line {ln}: {''.join(found)}\n")
+                            log.write("\n")
 
-                        log.write(f"File: {file_path}\n")
-                        log.write(f"Total emojis removed: {emoji_count_total}\n")
-                        for ln, found in line_records:
-                            log.write(f"  Line {ln}: {''.join(found)}\n")
-                        log.write("\n")
+                            print(f"✓ Cleaned {file_path} (removed {emoji_count_total} emojis)")
+                        else:
+                            log.write(f"No emojis found: {file_path}\n\n")
+                            print(f"○ No emojis: {file_path}")
 
-                        print(f"Cleaned {file_path} (removed {emoji_count_total} emojis)")
-                    else:
-                        print(f"No emojis: {file_path}")
+        log.write("\n" + "=" * 50 + "\n")
+        log.write(f"SUMMARY\n")
+        log.write(f"Files processed: {files_processed}\n")
+        log.write(f"Files with emojis: {files_with_emojis}\n")
 
-    print(f"\nLog written to: {log_path}")
+    print(f"\n{'=' * 50}")
+    print(f"SUMMARY:")
+    print(f"Files processed: {files_processed}")
+    print(f"Files with emojis: {files_with_emojis}")
+    print(f"Log written to: {log_path}")
 
 
 if __name__ == "__main__":
