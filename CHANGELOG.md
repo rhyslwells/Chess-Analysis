@@ -17,4 +17,4 @@
 - no longer need to rerun due to sidebar re-rendering
 
 ## [1.0.3] - 2026-01-17
-- Refactored app.py into multiple files for better organization.
+- Refactored app.py into multiple files for better organisation.
