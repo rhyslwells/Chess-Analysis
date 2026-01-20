@@ -1,26 +1,20 @@
-# Building a Chess Data Pipeline: Exploring the Chess.com API with Python
+# Building a Chess Analysis App - Exploring the Chess.com API with Python
 
-*How I built a robust data fetcher for the chess analysis application*
-
----
+*How I interacted with the Chess.com API for the chess analysis application*
 
 ## Introduction
 
-As part of my Streamlit chess analysis project, one of the first challenges was fetching and processing game data from Chess.com. While Chess.com provides [Published Data API](https://www.chess.com/news/view/published-data-api), working with it directly presents several challenges: navigating monthly archive pagination, handling edge cases in game timing data, and structuring JSON responses for analysis.
+As part of my Streamlit [Chess Analysis](https://chess-analysis.streamlit.app/) project, one of the first challenges was fetching and processing game data from Chess.com. While Chess.com provides [Published Data API](https://www.chess.com/news/view/published-data-api), working with it directly presents several challenges: navigating monthly archive pagination, handling edge cases in game timing data, and structuring JSON responses for analysis.
 
 This post explores how I built the `ChessDataFetcher` class to handle these challenges. I'll use real data from my account as a working example, to demonstrate the system in action.
-
----
 
 ## The Chess.com API: Structure and Challenges
 
 Chess.com organises game data into monthly archives. The `ChessDataFetcher` class encapsulates this pipeline:
 
 ```
-Chess.com API → Fetch Games → Validate Data → Process → DataFrame
+Chess.com API -> Fetch Games -> Validate Data -> Process -> DataFrame
 ```
-
----
 
 ## Architecture: From API to Analysis
 
@@ -56,24 +50,22 @@ all_games = fetcher.fetch_all_games("RhysLWells", limit_months=12)
 ```
 
 This method:
-- Calls `get_available_archives()` automatically
-- Iterates through each monthly archive  
+- Calls `get_available_archives()` and iterates through each monthly archive  
 - Implements rate limiting (0.5s delay between requests)
 - Returns a complete list of game dictionaries
 
-**Output**: 264 games fetched across 123 days (2025-09-15 to 2026-01-16)
-
-The API provides metadata for each game, including time control classification (blitz, bullet, rapid), player ratings, results, and PGN data.
+Running this on my account: 264 games fetched across 123 days (2025-09-15 to 2026-01-16). The [API](https://rhyslwells.github.io/Data-Archive/categories/devops/API) provides metadata for each game stored in JSON, including time control classification (blitz, bullet, rapid), player ratings, results, and [PGN](https://rhyslwells.github.io/Data-Archive/categories/OTHER/PGN) data.
 
 ### 3. Data Validation
 
-Raw API data isn't always clean. During development, I discovered games with negative durations (derived from PGNs). This is an impossibility and would corrupt any time-based analysis. I found three main edge cases causing this:
+Raw API data isn't always clean. During development, I discovered games with negative durations (derived from PGNs). This would corrupt any time-based analysis. I found three main edge cases causing this:
 
 - Midnight Crossings:Game starts at 23:50:00, ends at 00:10:00
 - Timezone Issues: Durations > 24 hours
 - Missing Data: No start time in PGN headers
 
----
+The `validate_game_durations()` method addresses these issues.
+
 
 ## Processing: From JSON to DataFrame
 
@@ -90,7 +82,6 @@ The `process_and_save()` method performs the following steps:
 2. Calculate results from user's perspective (win/loss/draw)
 3. Validate game durations using the logic above
 4. Remove duplicates (based on timestamp + opponent)
-5. Filter out games with invalid data
 
 And builds a DataFrame with the following columns:
 
@@ -106,7 +97,6 @@ And builds a DataFrame with the following columns:
 
 **Performance**: Processing 264 games takes approximately less that 15 seconds, primarily limited by API rate constraints.
 
----
 
 ## Initial Insights
 
@@ -149,18 +139,9 @@ This helps Chess.com track API usage and contact developers if issues arise.
 ```python
 time.sleep(0.5)  # Respect API constraints
 ```
-This avoids potential IP bans while maintaining reasonable fetch times (264 games in ~30 seconds).
+This avoids potential IP bans while maintaining reasonable fetch times (264 games in ~15 seconds).
 
----
 
 ## Conclusion
 
-The `ChessDataFetcher` class solves the complexity of working with the Chess.com API by handling archive discovery, rate limiting, data validation, and structuring automatically. What could require dozens of lines of error-prone code becomes a simple three-line fetch:
-
-```python
-fetcher = ChessDataFetcher()
-games = fetcher.fetch_all_games("RhysLWells")
-df = fetcher.process_and_save("RhysLWells", games)
-```
-
-With this data in hand I can proceed to further analysis and prediction in the chess analysis dashboard.
+The `ChessDataFetcher` class solves the complexity of working with the Chess.com API by handling archive discovery, rate limiting, data validation, and structuring automatically. With this data in hand I can proceed to further analysis and prediction in the chess analysis dashboard.
